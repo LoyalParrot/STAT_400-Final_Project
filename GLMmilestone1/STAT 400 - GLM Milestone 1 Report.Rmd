@@ -29,6 +29,10 @@ This is the main response variable so this was added through data located at: <h
 
 For the code that we created for making the cleaned dataset `NBAGameData`, please see <https://github.com/LoyalParrot/STAT_400-Final_Project/blob/main/GLMmilestone1/DatasetCreation.Rmd>.
 
+A single observation in this dataset will be a NBA team during a given season.
+
 ## Variable Description
 
+### Response Variable
 
+The response variable is `PlayoffAppearanceIndicator` which is a binary indicator variable with a value of 1 for if a team made the playoffs in a the specified season and 0 otherwise.

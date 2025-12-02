@@ -6,7 +6,29 @@ output: html_document
 ---
 
 ## Front Matter
+```{r}
+# Libraries
+library(tidyverse)
 
-Our goal of this logistic regression is to predict whether a team will make the playoffs and as such our response variable will be a binary response which takes values of (1) for a team that made the playoffs and (0) for a team that did not make the playoffs.
+# Dataset
+NBAGameData <- read.csv("CleanedData/NBATeamData.csv")
+```
 
-A single observation in this dataset will be a NBA team during a given season.
+## Research Question
+The goal of this logistic regression project is to predict if a team in the National Basketball Association (NBA) will make the playoffs.
+
+## Dataset Description
+
+NOTE: We created the cleaned dataset `NBAGameData` above based on the below raw datasets
+
+The main raw dataset that our team chose is located at: <https://github.com/NocturneBear/NBA-Data-2010-2024/blob/main/regular_season_totals_2010_2024.csv>
+
+It includes many teams statistics for each NBA team, however, notably missing from this dataset is whether a team made the playoffs.
+
+This is the main response variable so this was added through data located at: <https://basketball.realgm.com/nba/playoffs/history/2010>
+
+For the code that we created for making the cleaned dataset `NBAGameData`, please see <https://github.com/LoyalParrot/STAT_400-Final_Project/blob/main/GLMmilestone1/DatasetCreation.Rmd>.
+
+## Variable Description
+
+

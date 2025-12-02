@@ -9,22 +9,25 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+Our goal of this logistic regression is to predict whether a team will make the playoffs and as such our response variable will be a binary response which takes values of (1) for a team that made the playoffs and (0) for a team that did not make the playoffs.
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+A single observation in this dataset will be a NBA team during a given season.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+## FRONT MATTER
+```{r}
+library(tidyverse)
 ```
 
-## Including Plots
+```{r}
+# link to the raw data -> https://github.com/NocturneBear/NBA-Data-2010-2024/blob/main/regular_season_totals_2010_2024.csv
 
-You can also embed plots, for example:
+NBAGameData <- read.csv() # fill in with your own file path
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+NBATeamData <- NBAGameData %>%
+  # grouped by season and team so each observation is a team in a given season
+  group_by(SEASON_YEAR,TEAM_NAME) %>%
+  ## We will have to make our own summary statistics, I included FGA per game and FGM per game as an example, but we can make whatever stats we want with the given game totals
+  summarise(fga = mean(FGA),
+            fgm = mean(FGM))
+            
 ```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

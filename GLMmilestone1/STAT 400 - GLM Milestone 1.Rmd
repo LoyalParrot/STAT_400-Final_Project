@@ -20,9 +20,9 @@ library(tidyverse)
 
 # Datasets
 ## Raw Data Source Link: https://github.com/NocturneBear/NBA-Data-2010-2024/blob/main/regular_season_totals_2010_2024.csv
-NBAGameData <- read.csv("regular_season_totals_2010_2024.csv")
+NBAGameData <- read.csv("Raw Data/regular_season_totals_2010_2024.csv")
 ## I manually made a csv from this site using Google Sheets: https://basketball.realgm.com/nba/playoffs/history/2010
-NBAPlayoffTeamsPerYear <- read.csv("NBA_Playoff_Data.csv")
+NBAPlayoffTeamsPerYear <- read.csv("Raw Data/NBA_Playoff_Data.csv")
 ```
 
 ```{r}
@@ -104,4 +104,7 @@ NBATeamData <-
   left_join(NBATeamData,
             NBAPlayoffTeamsPerYear,
             by=c("TEAM_NAME", "SEASON_YEAR"))
+
+## Perform save, Uncomment below if you want it
+write_csv(NBATeamData, "CleanedData/NBATeamData")
 ```

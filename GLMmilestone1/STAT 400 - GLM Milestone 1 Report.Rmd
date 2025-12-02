@@ -1,0 +1,12 @@
+---
+title: "STAT 400 - GLM Milestone 1 Report"
+author: "Ishan Agrahar, Jake Sturges, Noah Tobias, Prajwal Bhandari"
+date: "2025-12-02"
+output: html_document
+---
+
+## Front Matter
+
+Our goal of this logistic regression is to predict whether a team will make the playoffs and as such our response variable will be a binary response which takes values of (1) for a team that made the playoffs and (0) for a team that did not make the playoffs.
+
+A single observation in this dataset will be a NBA team during a given season.

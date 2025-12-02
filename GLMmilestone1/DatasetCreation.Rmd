@@ -1,5 +1,5 @@
 ---
-title: "STAT 400 - GLM Milestone 1"
+title: "STAT 400 - GLM Milestone 1 Dataset Creation"
 author: "Ishan Agrahar, Jake Sturges, Noah Tobias, Prajwal Bhandari"
 date: "2025-11-30"
 output: html_document
@@ -106,5 +106,5 @@ NBATeamData <-
             by=c("TEAM_NAME", "SEASON_YEAR"))
 
 ## Perform save, Uncomment below if you want it
-#write_csv(NBATeamData, "CleanedData/NBATeamData")
+#write_csv(NBATeamData, "CleanedData/NBATeamData.csv")
 ```

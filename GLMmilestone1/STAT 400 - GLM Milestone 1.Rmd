@@ -106,5 +106,5 @@ NBATeamData <-
             by=c("TEAM_NAME", "SEASON_YEAR"))
 
 ## Perform save, Uncomment below if you want it
-write_csv(NBATeamData, "CleanedData/NBATeamData")
+#write_csv(NBATeamData, "CleanedData/NBATeamData")
 ```

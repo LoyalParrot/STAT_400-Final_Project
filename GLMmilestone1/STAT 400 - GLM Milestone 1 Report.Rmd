@@ -30,6 +30,7 @@ A single observation in this dataset will be a NBA team during a given season.
 
 ## Variable Description
 
+<<<<<<< HEAD
 **SEASON_YEAR** - a variable describing the season in which a given team played (2011 to 2024) - Categorical, 14 Levels
 
 **TEAM_NAME** - describes a teams name and the city they play for - Categorical, 30 Levels
@@ -79,6 +80,57 @@ A single observation in this dataset will be a NBA team during a given season.
 **WINPCT** - a teams win percentage on the season - Quantitative
 
 **CONFERENCE** - a variable describing which conference a team is in taking values "Western" or "Eastern" - Categorical, 2 Levels
+=======
+SEASON_YEAR - a variable describing the season in which a given team played
+
+TEAM_NAME - describes a teams name and the city they play for
+
+FGA - average number of field goals attempted per game
+
+FGM - average number of field goals made per game
+
+FG_PCT - average field goal percentage per game
+
+FG3M -average number of 3 pointers made per game
+
+FG3A - average number of 3 pointers attempted per game
+
+FG3_PCT - average 3 point percentage per game
+
+FTM - average number of free throws made per game
+
+FTA - average number of free throws attempted per game
+
+FTPCT - average free throw percentage per game
+
+OREB - average number of offensive rebounds per game
+
+DREB - average number of defensive rebounds per game
+
+REB - average number of rebounds per game
+
+AST - average number of assists per game
+
+TOV - average number of turnovers per game
+
+STL - average number of steals per game
+
+BLK - average number of blocks per game
+
+BLKA - average number of blocks against per game
+
+PF - average number of personal fouls per game
+
+PFD - average number of personal fouls drawn per game
+
+PTS - average number of total points per game
+
+PLUS_MINUS - average number of points scored more than opponent
+
+WINPCT - a teams win percentage on the season
+
+CONFERENCE - a variable describing which conference a team is in taking values "Western" or "Eastern"
+>>>>>>> refs/remotes/origin/main
 
 ### Response Variable
 

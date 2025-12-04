@@ -1,0 +1,335 @@
+---
+title: "STAT 400 - GLM Milestone 2 & EDA"
+author: "Ishan Agrahar, Jake Sturges, Noah Tobias, Prajwal Bhandari"
+date: "2025-12-03"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Our goal of this logistic regression is to predict whether a team will make the playoffs and as such our response variable will be a binary response which takes values of (1) for a team that made the playoffs and (0) for a team that did not make the playoffs.
+
+A single observation in this dataset will be a NBA team during a given season.
+
+## FRONT MATTER
+```{r}
+# Libraries
+library(tidyverse)
+library(janitor)
+library(skimr)
+library(GGally)
+
+# Datasets
+## Raw Data Source Link: https://github.com/NocturneBear/NBA-Data-2010-2024/blob/main/regular_season_totals_2010_2024.csv
+NBAGameData <- read.csv("regular_season_totals_2010_2024.csv")
+## I manually made a csv from this site using Google Sheets: https://basketball.realgm.com/nba/playoffs/history/2010
+NBAPlayoffTeamsPerYear <- read.csv("NBA_Playoff_Data.csv")
+```
+
+
+## GLM MILESTONE1 & GLM MILESTONE2 DATA CLEANING 
+```{r}
+NBATeamData <- NBAGameData %>%
+  # grouped by season and team so each observation is a team in a given season
+  group_by(SEASON_YEAR,TEAM_NAME) %>%
+# creating relevant variables for dataset
+  summarise(FGA = mean(FGA),
+            FGM = mean(FGM),
+            FG_PCT = mean(FG_PCT),
+            FG3M = mean(FG3M),
+            FG3A = mean(FG3A),
+            FG3_PCT = mean(FG3_PCT),
+            FTM = mean(FTM),
+            FTA = mean(FTA),
+            FTPCT = mean(FT_PCT),
+            OREB = mean(OREB),
+            DREB = mean(DREB),
+            REB = mean(REB),
+            AST = mean(AST),
+            TOV = mean(TOV),
+            STL = mean(STL),
+            BLK = mean(BLK),
+            BLKA = mean(BLKA),
+            PF = mean(PF),
+            PFD = mean(PFD),
+            PTS = mean(PTS),
+            PLUS_MINUS = mean(PLUS_MINUS),
+            WINPCT = mean(ifelse(WL == "W",1,0)),
+            .groups = "drop") %>%
+  mutate(CONFERENCE = ifelse(TEAM_NAME %in% c("Denver Nuggets","Minnesota Timberwolves","Oklahoma City Thunder","Utah Jazz","Portland Trail Blazers","Golden State Warriors","LA Clippers", "Los Angeles Clippers","Los Angeles Lakers", "Phoenix Suns","Sacramento Kings", "Dallas Mavericks","Houston Rockets","Memphis Grizzlies", "New Orleans Pelicans","San Antonio Spurs","New Orleans Hornets"), "Western", "Eastern"))
+
+# Dataset does not include whether team has made playoffs so will need to join
+## See NBAPlayoffTeamsPerYear
+
+## I just copied and pasted playoffs occurrences, which is a comma separated string, into the Years Column so I just need to go through each team and indicate 1 if the Year is in the string and 0 otherwise.
+NBAPlayoffTeamsPerYear <-
+  NBAPlayoffTeamsPerYear %>%
+  mutate(
+    `2010-11` = ifelse(grepl("2011", Years), 1, 0),
+    `2011-12` = ifelse(grepl("2012", Years), 1, 0),
+    `2012-13` = ifelse(grepl("2013", Years), 1, 0),
+    `2013-14` = ifelse(grepl("2014", Years), 1, 0),
+    `2014-15` = ifelse(grepl("2015", Years), 1, 0),
+    `2015-16` = ifelse(grepl("2016", Years), 1, 0),
+    `2016-17` = ifelse(grepl("2017", Years), 1, 0),
+    `2017-18` = ifelse(grepl("2018", Years), 1, 0),
+    `2018-19` = ifelse(grepl("2019", Years), 1, 0),
+    `2019-20` = ifelse(grepl("2020", Years), 1, 0),
+    `2020-21` = ifelse(grepl("2021", Years), 1, 0),
+    `2021-22` = ifelse(grepl("2022", Years), 1, 0),
+    `2022-23` = ifelse(grepl("2023", Years), 1, 0),
+    `2023-24` = ifelse(grepl("2024", Years), 1, 0)
+  ) %>%
+  pivot_longer(cols = starts_with("20"),
+               names_to = "SEASON_YEAR", # For consistency with original dataset
+               values_to = "PlayoffAppearanceIndicator") %>%
+  rename(TEAM_NAME = Team.Name) %>%
+  .[, -2] # Removing the Years Column since don't need it anymore and need to join
+
+## Comparing team names, Uncomment below if you wanna see this
+# setdiff(unique(NBAPlayoffTeamsPerYear$TEAM_NAME), unique(NBATeamData$TEAM_NAME))
+# setdiff(unique(NBATeamData$TEAM_NAME), unique(NBAPlayoffTeamsPerYear$TEAM_NAME))
+# Differences are [1] "Philadelphia Sixers", & "Charlotte Bobcats"   "New Jersey Nets"     "New Orleans Hornets" "Philadelphia 76ers"  "LA Clippers"
+
+## Manually Fix Inconsistencies
+NBAPlayoffTeamsPerYear$TEAM_NAME[NBAPlayoffTeamsPerYear$TEAM_NAME == "Philadelphia Sixers"] <- "Philadelphia 76ers"
+NBATeamData$TEAM_NAME[NBATeamData$TEAM_NAME == "Charlotte Bobcats"] <- "Charlotte Hornets"
+NBATeamData$TEAM_NAME[NBATeamData$TEAM_NAME == "New Jersey Nets"] <- "Brooklyn Nets"
+NBATeamData$TEAM_NAME[NBATeamData$TEAM_NAME == "New Orleans Hornets"] <- "New Orleans Pelicans"
+NBATeamData$TEAM_NAME[NBATeamData$TEAM_NAME == "LA Clippers"] <- "Los Angeles Clippers"
+
+## Validate
+# setdiff(unique(NBAPlayoffTeamsPerYear$TEAM_NAME), unique(NBATeamData$TEAM_NAME))
+# setdiff(unique(NBATeamData$TEAM_NAME), unique(NBAPlayoffTeamsPerYear$TEAM_NAME))
+
+## Perform Join of NBAPlayoffTeamsPerYear and NBATeamData
+NBATeamData <- 
+  left_join(NBATeamData,
+            NBAPlayoffTeamsPerYear,
+            by=c("TEAM_NAME", "SEASON_YEAR"))
+
+## Perform save, Uncomment below if you want it
+#write_csv(NBATeamData, "CleanedData/NBATeamData.csv")
+```
+
+
+## GLM Milestone2 EDA
+
+### Create Playoff Appearance Factor Variable & Basic Summaries
+
+```{r}
+## label playoff factor once for plots below
+
+NBATeamData <- NBATeamData %>%
+  mutate(
+    PlayoffAppearance = factor(
+      PlayoffAppearanceIndicator,
+      levels = c(0, 1),
+      labels = c("No Playoffs", "Playoffs")
+    )
+  )
+
+## missing values and dataset summary
+
+colSums(is.na(NBATeamData))
+glimpse(NBATeamData)
+skimr::skim(NBATeamData)
+head(NBATeamData)
+```
+
+Based on the above there seems to be no missing variables for any of the dataset. Based on the above there are 14 seasons worth of data (2010-2024). For our research the most important variable that we are trying to predict is playoff appearance, as this indicates whether a team made/will make the playoffs based on our model. While as of right now its not clear which variables will be most important, some that will likely have a high impact are PTS, PLUS_MINUS, FG_PCT, and FG3_PCT. One variable purposefully excluded from that is win_percentage as using that is kind of pointless in our prediction since win_pct% directly indicates playoff teams as the 8 highest win_pct teams in each conference automatically make the playoffs.
+
+## Univariate EDA 
+
+### We will focus on two variables of interest since bivariate will likely provide better insights
+
+### Distribution of Win Percentages by teams over 2010-2024 Seasons
+
+```{r}
+## Win pct for teams
+
+ggplot(NBATeamData, aes(x = WINPCT)) +
+geom_histogram(bins = 30, fill = "steelblue", color = "white") +
+labs(
+title = "Distribution of Win Percentage",
+x = "Win %",
+y = "Count"
+)
+```
+
+Win percentage seems to be centered slightly above 50% with a decent left skew. As a sports fan this makes sense as extremely low values for win % can be pretty common, while extremely high win %'s are much more rare and this is clearly seen as only one team crosses 85.00% win pct and it was the 73-9 Golden State Warriors in 2015-2016, while at least 5 teams had sub 15.00% win percentages over the same time period.  
+
+
+### Points Per Game
+
+```{r}
+## Points per game for teams
+
+ggplot(NBATeamData, aes(x = PTS)) +
+geom_histogram(bins = 30, fill = "darkgreen", color = "white") +
+labs(
+title = "Distribution of Points per Game",
+x = "Points per Game",
+y = "Count"
+)
+
+```
+
+Points per Game seems to be centered around 105 points with certain teams averaging as little as 87 pointers per game, with others averaging as high as 123 points per game. One prediction we have is that teams which score more have a higher likelihood of making the playoffs (obviously dependent on their defense).
+
+## Bivariate EDA
+
+### Points Per Game by Playoff vs. Non-Playoff Teams
+
+```{r}
+## Points
+
+ggplot(NBATeamData, aes(x = PlayoffAppearance, y = PTS, fill = PlayoffAppearance)) +
+  geom_boxplot(show.legend = FALSE) +
+  labs(
+    title = "Points per Game by Playoff Appearance",
+    x = "",
+    y = "Points per Game"
+  ) +
+  theme_minimal()
+```
+
+As previously mentioned it is clear that playoff appearing teams tend to have a higher average score each season than teams that do not make the playoffs by almost 5 points per game.
+
+
+### Field Goal Percentage by Playoff Teams vs. Non-Playoff Teams
+
+```{r}
+## Field Goal Pct
+
+ggplot(NBATeamData, aes(x = PlayoffAppearance, y = FG_PCT, fill = PlayoffAppearance)) +
+  geom_boxplot(show.legend = FALSE) +
+  labs(
+    title = "Field Goal Percentage by Playoff Appearance",
+    x = "",
+    y = "Field Goal Percentage"
+  ) +
+  theme_minimal()
+
+```
+
+Another seemingly high impact variable is field goal percentage and it is clear that teams which made the playoffs tended to have an almost 2% better field goal percentage than non-playoff teams.
+
+
+### Turnovers by Playoff vs. Non-Playoff Teams
+
+```{r}
+## Turnovers
+
+ggplot(NBATeamData, aes(x = PlayoffAppearance, y = TOV, fill = PlayoffAppearance)) +
+  geom_boxplot(show.legend = FALSE) +
+  labs(
+    title = "Turnovers per Game by Playoff Appearance",
+    x = "",
+    y = "Turnovers per Game"
+  ) +
+  theme_minimal()
+
+```
+
+Another variable that may have been overlooked earlier is turnovers. It is clear that playoff teams turn the ball over less than non-playoff teams. This highlights that other variables besides points scored could be a great indicator of whether a team will be successful.
+
+
+### Win % vs 2-Point and 3-Point Shooting
+
+```{r}
+## Win % vs overall FG%
+
+ggplot(NBATeamData, aes(x = FG_PCT, y = WINPCT, color = PlayoffAppearance)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(se = FALSE) +
+  labs(
+    title = "Win Percentage vs Field Goal Percentage",
+    x = "Field Goal Percentage",
+    y = "Win Percentage",
+    color = "Playoffs"
+  ) +
+  theme_minimal()
+
+
+## Win % vs 3-point FG%
+
+ggplot(NBATeamData, aes(x = FG3_PCT, y = WINPCT, color = PlayoffAppearance)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(se = FALSE) +
+  labs(
+    title = "Win Percentage vs Three-Point Percentage",
+    x = "Three-Point Percentage",
+    y = "Win Percentage",
+    color = "Playoffs"
+  ) +
+  theme_minimal()
+```
+
+A very interesting graphic that probably highlights more recent trends in NBA scoring / offensive dyanmic is how field goal pct and 3-point field goal percentage impact the win % of a team. It is very clear that as a team has a better three point field goal percentage their win % seems to see a boost as well, even significantly more than just if the same occurs in overall field goal percentage. Win % and field goal percentage seem almost linear, while 3 point field goal percentage and win percentage seem linear up until the upper echelon of three point shooting teams is reached where it seems to increase with win pct % exponentially.
+
+
+### Blocks and Steals for Playoff vs. Non-Playoff Teams 
+
+```{r}
+## Win % vs Steals
+ggplot(NBATeamData, aes(x = STL, y = WINPCT, color = PlayoffAppearance)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(se = FALSE) +
+  labs(
+    title = "Win Percentage vs Steals per Game",
+    x = "Steals per Game",
+    y = "Win Percentage",
+    color = "Playoffs"
+  ) +
+  theme_minimal()
+
+
+## Win % vs Blocks
+
+ggplot(NBATeamData, aes(x = BLK, y = WINPCT, color = PlayoffAppearance)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(se = FALSE) +
+  labs(
+    title = "Win Percentage vs Blocks per Game",
+    x = "Blocks per Game",
+    y = "Win Percentage",
+    color = "Playoffs"
+  ) +
+  theme_minimal()
+```
+
+Building off earlier these two graphics seem to show that win % is affected by defensive statistics as well. This is clearly seen with blocks as they seem to increase linearly with a teams win% highlighting how defensively strong teams that prevent shots from being put up seem to have better win %.
+
+
+## Multivariable EDA for all variables
+
+### Correlation Heatmap
+
+```{r}
+num_vars <- NBATeamData %>%
+  select(WINPCT, PTS, FG_PCT, FG3_PCT, FTPCT,
+         OREB, DREB, REB, AST, STL, BLK, TOV, PLUS_MINUS)
+
+cor_matrix <- cor(num_vars)
+
+GGally::ggcorr(num_vars, label = TRUE)
+```
+
+The correlation heatmap shows several clear relationships among team performance variables. WINPCT is most strongly correlated with PTS (0.70), FG_PCT (0.60), and PLUS_MINUS (0.60), suggesting that efficient scoring and overall point differential are closely tied to winning games. Assists and three-point percentage also show moderate positive correlations with WINPCT.
+
+Among predictors, strong internal correlations also appear — for example, REB is highly correlated with DREB (0.80), and FG_PCT is moderately correlated with PTS (0.40). These relationships indicate some redundancy among variables, meaning multicollinearity may need to be considered later when selecting predictors for the final GLM. Overall, the heatmap supports the idea that offensive efficiency, point differential, and scoring are the strongest statistical drivers of team success.
+
+
+## Statistical Analysis
+
+
+
+
+
+
+
+
+

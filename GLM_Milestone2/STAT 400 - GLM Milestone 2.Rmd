@@ -7,6 +7,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = here::here())
 ```
 
 Our goal of this logistic regression is to predict whether a team will make the playoffs and as such our response variable will be a binary response which takes values of (1) for a team that made the playoffs and (0) for a team that did not make the playoffs.
@@ -20,100 +21,13 @@ library(tidyverse)
 library(janitor)
 library(skimr)
 library(GGally)
+library(glmnet)
+library(here) # for directory matching
 
-# Datasets
-## Raw Data Source Link: https://github.com/NocturneBear/NBA-Data-2010-2024/blob/main/regular_season_totals_2010_2024.csv
-NBAGameData <- read.csv("regular_season_totals_2010_2024.csv")
-## I manually made a csv from this site using Google Sheets: https://basketball.realgm.com/nba/playoffs/history/2010
-NBAPlayoffTeamsPerYear <- read.csv("NBA_Playoff_Data.csv")
+# Load cleaned dataset:
+# NOTE: here::here() will use STAT_400-Final_Project/ as the root directory
+NBATeamData = read.csv(here::here("data", "CleanedData", "NBATeamData.csv"))
 ```
-
-
-## GLM MILESTONE1 & GLM MILESTONE2 DATA CLEANING 
-```{r}
-NBATeamData <- NBAGameData %>%
-  # grouped by season and team so each observation is a team in a given season
-  group_by(SEASON_YEAR,TEAM_NAME) %>%
-# creating relevant variables for dataset
-  summarise(FGA = mean(FGA),
-            FGM = mean(FGM),
-            FG_PCT = mean(FG_PCT),
-            FG3M = mean(FG3M),
-            FG3A = mean(FG3A),
-            FG3_PCT = mean(FG3_PCT),
-            FTM = mean(FTM),
-            FTA = mean(FTA),
-            FTPCT = mean(FT_PCT),
-            OREB = mean(OREB),
-            DREB = mean(DREB),
-            REB = mean(REB),
-            AST = mean(AST),
-            TOV = mean(TOV),
-            STL = mean(STL),
-            BLK = mean(BLK),
-            BLKA = mean(BLKA),
-            PF = mean(PF),
-            PFD = mean(PFD),
-            PTS = mean(PTS),
-            PLUS_MINUS = mean(PLUS_MINUS),
-            WINPCT = mean(ifelse(WL == "W",1,0)),
-            .groups = "drop") %>%
-  mutate(CONFERENCE = ifelse(TEAM_NAME %in% c("Denver Nuggets","Minnesota Timberwolves","Oklahoma City Thunder","Utah Jazz","Portland Trail Blazers","Golden State Warriors","LA Clippers", "Los Angeles Clippers","Los Angeles Lakers", "Phoenix Suns","Sacramento Kings", "Dallas Mavericks","Houston Rockets","Memphis Grizzlies", "New Orleans Pelicans","San Antonio Spurs","New Orleans Hornets"), "Western", "Eastern"))
-
-# Dataset does not include whether team has made playoffs so will need to join
-## See NBAPlayoffTeamsPerYear
-
-## I just copied and pasted playoffs occurrences, which is a comma separated string, into the Years Column so I just need to go through each team and indicate 1 if the Year is in the string and 0 otherwise.
-NBAPlayoffTeamsPerYear <-
-  NBAPlayoffTeamsPerYear %>%
-  mutate(
-    `2010-11` = ifelse(grepl("2011", Years), 1, 0),
-    `2011-12` = ifelse(grepl("2012", Years), 1, 0),
-    `2012-13` = ifelse(grepl("2013", Years), 1, 0),
-    `2013-14` = ifelse(grepl("2014", Years), 1, 0),
-    `2014-15` = ifelse(grepl("2015", Years), 1, 0),
-    `2015-16` = ifelse(grepl("2016", Years), 1, 0),
-    `2016-17` = ifelse(grepl("2017", Years), 1, 0),
-    `2017-18` = ifelse(grepl("2018", Years), 1, 0),
-    `2018-19` = ifelse(grepl("2019", Years), 1, 0),
-    `2019-20` = ifelse(grepl("2020", Years), 1, 0),
-    `2020-21` = ifelse(grepl("2021", Years), 1, 0),
-    `2021-22` = ifelse(grepl("2022", Years), 1, 0),
-    `2022-23` = ifelse(grepl("2023", Years), 1, 0),
-    `2023-24` = ifelse(grepl("2024", Years), 1, 0)
-  ) %>%
-  pivot_longer(cols = starts_with("20"),
-               names_to = "SEASON_YEAR", # For consistency with original dataset
-               values_to = "PlayoffAppearanceIndicator") %>%
-  rename(TEAM_NAME = Team.Name) %>%
-  .[, -2] # Removing the Years Column since don't need it anymore and need to join
-
-## Comparing team names, Uncomment below if you wanna see this
-# setdiff(unique(NBAPlayoffTeamsPerYear$TEAM_NAME), unique(NBATeamData$TEAM_NAME))
-# setdiff(unique(NBATeamData$TEAM_NAME), unique(NBAPlayoffTeamsPerYear$TEAM_NAME))
-# Differences are [1] "Philadelphia Sixers", & "Charlotte Bobcats"   "New Jersey Nets"     "New Orleans Hornets" "Philadelphia 76ers"  "LA Clippers"
-
-## Manually Fix Inconsistencies
-NBAPlayoffTeamsPerYear$TEAM_NAME[NBAPlayoffTeamsPerYear$TEAM_NAME == "Philadelphia Sixers"] <- "Philadelphia 76ers"
-NBATeamData$TEAM_NAME[NBATeamData$TEAM_NAME == "Charlotte Bobcats"] <- "Charlotte Hornets"
-NBATeamData$TEAM_NAME[NBATeamData$TEAM_NAME == "New Jersey Nets"] <- "Brooklyn Nets"
-NBATeamData$TEAM_NAME[NBATeamData$TEAM_NAME == "New Orleans Hornets"] <- "New Orleans Pelicans"
-NBATeamData$TEAM_NAME[NBATeamData$TEAM_NAME == "LA Clippers"] <- "Los Angeles Clippers"
-
-## Validate
-# setdiff(unique(NBAPlayoffTeamsPerYear$TEAM_NAME), unique(NBATeamData$TEAM_NAME))
-# setdiff(unique(NBATeamData$TEAM_NAME), unique(NBAPlayoffTeamsPerYear$TEAM_NAME))
-
-## Perform Join of NBAPlayoffTeamsPerYear and NBATeamData
-NBATeamData <- 
-  left_join(NBATeamData,
-            NBAPlayoffTeamsPerYear,
-            by=c("TEAM_NAME", "SEASON_YEAR"))
-
-## Perform save, Uncomment below if you want it
-#write_csv(NBATeamData, "CleanedData/NBATeamData.csv")
-```
-
 
 ## GLM Milestone2 EDA
 
@@ -177,7 +91,7 @@ y = "Count"
 
 ```
 
-Points per Game seems to be centered around 105 points with certain teams averaging as little as 87 pointers per game, with others averaging as high as 123 points per game. One prediction we have is that teams which score more have a higher likelihood of making the playoffs (obviously dependent on their defense).
+Points per Game seems to be centered around 105 points with certain teams averaging as little as 87 points per game, with others averaging as high as 123 points per game. One prediction we have is that teams which score more have a higher likelihood of making the playoffs (obviously dependent on their defense).
 
 ## Bivariate EDA
 
@@ -309,9 +223,11 @@ Building off earlier these two graphics seem to show that win % is affected by d
 ### Correlation Heatmap
 
 ```{r}
+# get all numeric variables
+numerics = as.vector(names(NBATeamData[sapply(names(NBATeamData), \(x) is.numeric(NBATeamData[[x]])) == TRUE]))[-23] # remove PlayoffAppearanceIndicator
+
 num_vars <- NBATeamData %>%
-  select(WINPCT, PTS, FG_PCT, FG3_PCT, FTPCT,
-         OREB, DREB, REB, AST, STL, BLK, TOV, PLUS_MINUS)
+  select(all_of(numerics))
 
 cor_matrix <- cor(num_vars)
 
@@ -325,10 +241,72 @@ Among predictors, strong internal correlations also appear — for example, REB 
 
 ## Statistical Analysis
 
+From the previous plot, there is very strong evidence of multicollinearity in a lot of the predictors that exist in the entire predictor set we are using. For this reason, we opt to use the `cv.glmnet()` function in the `glmnet` package to perform variable selection using LASSO regression with 5 fold cross validation as a preliminary model. 
 
+```{r}
+# Predict if team goes to playoffs based on game statistics alone, this one does 
+# not include the year and team because they act more like level 2 grouping variables
+# and would be more appropriate to use for a mixed effects model.
 
+X = model.matrix(PlayoffAppearanceIndicator ~ . - SEASON_YEAR - TEAM_NAME, data = NBATeamData)[, -1]
 
+y = NBATeamData$PlayoffAppearanceIndicator
 
+set.seed(0) # for reproducibility
+
+cvfit = cv.glmnet(
+  X,
+  y,
+  family = "binomial",
+  type.measure = "auc",   
+  nfolds = 5,
+  alpha = 1        # 1 = lasso
+)
+
+cvfit
+
+coef(cvfit, s = "lambda.min")
+```
+
+For this particular model, we report a mean min AUC of 0.9822 and a mean 1se AUC of 0.9793 with 5 fold cross validation, which indicates that the variables `FGA`, `FTM`, `WINPCT`, and `CONFERENCE`, are the strongest predictors of playoff appearance. However, given the very large coefficient on WINPCT, we have good reason to believe that it is a proxy for playoff appearance.
+
+For a more balanced approach, we will consider a model without `WINPCT`, given that it is a very strong proxy for predictng if a team makes it to the playoffs or not. 
+
+```{r}
+X2 = model.matrix(PlayoffAppearanceIndicator ~ . - SEASON_YEAR - TEAM_NAME - WINPCT, data = NBATeamData)[, -1]
+
+y2 =  NBATeamData$PlayoffAppearanceIndicator
+
+set.seed(0) # for reproducibility
+
+cvfit2 = cv.glmnet(
+  X2,
+  y2,
+  family = "binomial",
+  type.measure = "auc",   
+  nfolds = 5,
+  alpha = 1        # 1 = lasso
+)
+
+cvfit2
+
+coef(cvfit2, s = "lambda.min")
+```
+
+When we do not consider the teams win percentage, `FGA`, `FTM`, `OREB`, and `PLUS_MINUS` are the nonzero predictors. Still, the model is quite strong, with a mean min AUC of 0.9616 and a mean 1se AUC of 0.9592. 
+
+To test if these predictors are statistically significant, we will fit a standard logistic regression model with the previous Predictors and look at the standard errors.
+
+```{r}
+glm1 = glm(PlayoffAppearanceIndicator ~ FGA + FTM + OREB + PLUS_MINUS, family = binomial, data = NBATeamData)
+
+summary(glm1)
+
+# check for multicollinearity
+car::vif(glm1)
+```
+
+At the $\alpha = 0.05$ significance level, only `PLUS_MINUS` is a significant predictor of playoff appearance when the remaining variables are included in the model. When checking for variance inflation factors, the predictors are all around 1 so we can say that collinearity is not a problem for this model.  
 
 
 

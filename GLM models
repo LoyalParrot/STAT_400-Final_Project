@@ -1,0 +1,312 @@
+---
+title: "STAT 400 - GLM Milestone 2 & EDA"
+author: "Ishan Agrahar, Jake Sturges, Noah Tobias, Prajwal Bhandari"
+date: "2025-12-03"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = here::here())
+```
+
+Our goal of this logistic regression is to predict whether a team will make the playoffs and as such our response variable will be a binary response which takes values of (1) for a team that made the playoffs and (0) for a team that did not make the playoffs.
+
+A single observation in this dataset will be a NBA team during a given season.
+
+## FRONT MATTER
+```{r}
+# Libraries
+library(tidyverse)
+library(janitor)
+library(skimr)
+library(GGally)
+library(glmnet)
+library(here) # for directory matching
+
+# Load cleaned dataset:
+# NOTE: here::here() will use STAT_400-Final_Project/ as the root directory
+NBATeamData = read.csv(here::here("data", "CleanedData", "NBATeamData.csv"))
+```
+
+## GLM Milestone2 EDA
+
+### Create Playoff Appearance Factor Variable & Basic Summaries
+
+```{r}
+## label playoff factor once for plots below
+
+NBATeamData <- NBATeamData %>%
+  mutate(
+    PlayoffAppearance = factor(
+      PlayoffAppearanceIndicator,
+      levels = c(0, 1),
+      labels = c("No Playoffs", "Playoffs")
+    )
+  )
+
+## missing values and dataset summary
+
+colSums(is.na(NBATeamData))
+glimpse(NBATeamData)
+skimr::skim(NBATeamData)
+head(NBATeamData)
+```
+
+Based on the above there seems to be no missing variables for any of the dataset. Based on the above there are 14 seasons worth of data (2010-2024). For our research the most important variable that we are trying to predict is playoff appearance, as this indicates whether a team made/will make the playoffs based on our model. While as of right now its not clear which variables will be most important, some that will likely have a high impact are PTS, PLUS_MINUS, FG_PCT, and FG3_PCT. One variable purposefully excluded from that is win_percentage as using that is kind of pointless in our prediction since win_pct% directly indicates playoff teams as the 8 highest win_pct teams in each conference automatically make the playoffs.
+
+## Univariate EDA 
+
+### We will focus on two variables of interest since bivariate will likely provide better insights
+
+### Distribution of Win Percentages by teams over 2010-2024 Seasons
+
+```{r}
+## Win pct for teams
+
+ggplot(NBATeamData, aes(x = WINPCT)) +
+geom_histogram(bins = 30, fill = "steelblue", color = "white") +
+labs(
+title = "Distribution of Win Percentage",
+x = "Win %",
+y = "Count"
+)
+```
+
+Win percentage seems to be centered slightly above 50% with a decent left skew. As a sports fan this makes sense as extremely low values for win % can be pretty common, while extremely high win %'s are much more rare and this is clearly seen as only one team crosses 85.00% win pct and it was the 73-9 Golden State Warriors in 2015-2016, while at least 5 teams had sub 15.00% win percentages over the same time period.  
+
+
+### Points Per Game
+
+```{r}
+## Points per game for teams
+
+ggplot(NBATeamData, aes(x = PTS)) +
+geom_histogram(bins = 30, fill = "darkgreen", color = "white") +
+labs(
+title = "Distribution of Points per Game",
+x = "Points per Game",
+y = "Count"
+)
+
+```
+
+Points per Game seems to be centered around 105 points with certain teams averaging as little as 87 points per game, with others averaging as high as 123 points per game. One prediction we have is that teams which score more have a higher likelihood of making the playoffs (obviously dependent on their defense).
+
+## Bivariate EDA
+
+### Points Per Game by Playoff vs. Non-Playoff Teams
+
+```{r}
+## Points
+
+ggplot(NBATeamData, aes(x = PlayoffAppearance, y = PTS, fill = PlayoffAppearance)) +
+  geom_boxplot(show.legend = FALSE) +
+  labs(
+    title = "Points per Game by Playoff Appearance",
+    x = "",
+    y = "Points per Game"
+  ) +
+  theme_minimal()
+```
+
+As previously mentioned it is clear that playoff appearing teams tend to have a higher average score each season than teams that do not make the playoffs by almost 5 points per game.
+
+
+### Field Goal Percentage by Playoff Teams vs. Non-Playoff Teams
+
+```{r}
+## Field Goal Pct
+
+ggplot(NBATeamData, aes(x = PlayoffAppearance, y = FG_PCT, fill = PlayoffAppearance)) +
+  geom_boxplot(show.legend = FALSE) +
+  labs(
+    title = "Field Goal Percentage by Playoff Appearance",
+    x = "",
+    y = "Field Goal Percentage"
+  ) +
+  theme_minimal()
+
+```
+
+Another seemingly high impact variable is field goal percentage and it is clear that teams which made the playoffs tended to have an almost 2% better field goal percentage than non-playoff teams.
+
+
+### Turnovers by Playoff vs. Non-Playoff Teams
+
+```{r}
+## Turnovers
+
+ggplot(NBATeamData, aes(x = PlayoffAppearance, y = TOV, fill = PlayoffAppearance)) +
+  geom_boxplot(show.legend = FALSE) +
+  labs(
+    title = "Turnovers per Game by Playoff Appearance",
+    x = "",
+    y = "Turnovers per Game"
+  ) +
+  theme_minimal()
+
+```
+
+Another variable that may have been overlooked earlier is turnovers. It is clear that playoff teams turn the ball over less than non-playoff teams. This highlights that other variables besides points scored could be a great indicator of whether a team will be successful.
+
+
+### Win % vs 2-Point and 3-Point Shooting
+
+```{r}
+## Win % vs overall FG%
+
+ggplot(NBATeamData, aes(x = FG_PCT, y = WINPCT, color = PlayoffAppearance)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(se = FALSE) +
+  labs(
+    title = "Win Percentage vs Field Goal Percentage",
+    x = "Field Goal Percentage",
+    y = "Win Percentage",
+    color = "Playoffs"
+  ) +
+  theme_minimal()
+
+
+## Win % vs 3-point FG%
+
+ggplot(NBATeamData, aes(x = FG3_PCT, y = WINPCT, color = PlayoffAppearance)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(se = FALSE) +
+  labs(
+    title = "Win Percentage vs Three-Point Percentage",
+    x = "Three-Point Percentage",
+    y = "Win Percentage",
+    color = "Playoffs"
+  ) +
+  theme_minimal()
+```
+
+A very interesting graphic that probably highlights more recent trends in NBA scoring / offensive dyanmic is how field goal pct and 3-point field goal percentage impact the win % of a team. It is very clear that as a team has a better three point field goal percentage their win % seems to see a boost as well, even significantly more than just if the same occurs in overall field goal percentage. Win % and field goal percentage seem almost linear, while 3 point field goal percentage and win percentage seem linear up until the upper echelon of three point shooting teams is reached where it seems to increase with win pct % exponentially.
+
+
+### Blocks and Steals for Playoff vs. Non-Playoff Teams 
+
+```{r}
+## Win % vs Steals
+ggplot(NBATeamData, aes(x = STL, y = WINPCT, color = PlayoffAppearance)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(se = FALSE) +
+  labs(
+    title = "Win Percentage vs Steals per Game",
+    x = "Steals per Game",
+    y = "Win Percentage",
+    color = "Playoffs"
+  ) +
+  theme_minimal()
+
+
+## Win % vs Blocks
+
+ggplot(NBATeamData, aes(x = BLK, y = WINPCT, color = PlayoffAppearance)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(se = FALSE) +
+  labs(
+    title = "Win Percentage vs Blocks per Game",
+    x = "Blocks per Game",
+    y = "Win Percentage",
+    color = "Playoffs"
+  ) +
+  theme_minimal()
+```
+
+Building off earlier these two graphics seem to show that win % is affected by defensive statistics as well. This is clearly seen with blocks as they seem to increase linearly with a teams win% highlighting how defensively strong teams that prevent shots from being put up seem to have better win %.
+
+
+## Multivariable EDA for all variables
+
+### Correlation Heatmap
+
+```{r}
+# get all numeric variables
+numerics = as.vector(names(NBATeamData[sapply(names(NBATeamData), \(x) is.numeric(NBATeamData[[x]])) == TRUE]))[-23] # remove PlayoffAppearanceIndicator
+
+num_vars <- NBATeamData %>%
+  select(all_of(numerics))
+
+cor_matrix <- cor(num_vars)
+
+GGally::ggcorr(num_vars, label = TRUE)
+```
+
+The correlation heatmap shows several clear relationships among team performance variables. WINPCT is most strongly correlated with PTS (0.70), FG_PCT (0.60), and PLUS_MINUS (0.60), suggesting that efficient scoring and overall point differential are closely tied to winning games. Assists and three-point percentage also show moderate positive correlations with WINPCT.
+
+Among predictors, strong internal correlations also appear — for example, REB is highly correlated with DREB (0.80), and FG_PCT is moderately correlated with PTS (0.40). These relationships indicate some redundancy among variables, meaning multicollinearity may need to be considered later when selecting predictors for the final GLM. Overall, the heatmap supports the idea that offensive efficiency, point differential, and scoring are the strongest statistical drivers of team success.
+
+
+## Statistical Analysis
+
+From the previous plot, there is very strong evidence of multicollinearity in a lot of the predictors that exist in the entire predictor set we are using. For this reason, we opt to use the `cv.glmnet()` function in the `glmnet` package to perform variable selection using LASSO regression with 5 fold cross validation as a preliminary model. 
+
+```{r}
+# Predict if team goes to playoffs based on game statistics alone, this one does 
+# not include the year and team because they act more like level 2 grouping variables
+# and would be more appropriate to use for a mixed effects model.
+
+X = model.matrix(PlayoffAppearanceIndicator ~ . - SEASON_YEAR - TEAM_NAME, data = NBATeamData)[, -1]
+
+y = NBATeamData$PlayoffAppearanceIndicator
+
+set.seed(0) # for reproducibility
+
+cvfit = cv.glmnet(
+  X,
+  y,
+  family = "binomial",
+  type.measure = "auc",   
+  nfolds = 5,
+  alpha = 1        # 1 = lasso
+)
+
+cvfit
+
+coef(cvfit, s = "lambda.min")
+```
+
+For this particular model, we report a mean min AUC of 0.9822 and a mean 1se AUC of 0.9793 with 5 fold cross validation, which indicates that the variables `FGA`, `FTM`, `WINPCT`, and `CONFERENCE`, are the strongest predictors of playoff appearance. However, given the very large coefficient on WINPCT, we have good reason to believe that it is a proxy for playoff appearance.
+
+For a more balanced approach, we will consider a model without `WINPCT`, given that it is a very strong proxy for predictng if a team makes it to the playoffs or not. 
+
+```{r}
+X2 = model.matrix(PlayoffAppearanceIndicator ~ . - SEASON_YEAR - TEAM_NAME - WINPCT, data = NBATeamData)[, -1]
+
+y2 =  NBATeamData$PlayoffAppearanceIndicator
+
+set.seed(0) # for reproducibility
+
+cvfit2 = cv.glmnet(
+  X2,
+  y2,
+  family = "binomial",
+  type.measure = "auc",   
+  nfolds = 5,
+  alpha = 1        # 1 = lasso
+)
+
+cvfit2
+
+coef(cvfit2, s = "lambda.min")
+```
+
+When we do not consider the teams win percentage, `FGA`, `FTM`, `OREB`, and `PLUS_MINUS` are the nonzero predictors. Still, the model is quite strong, with a mean min AUC of 0.9616 and a mean 1se AUC of 0.9592. 
+
+To test if these predictors are statistically significant, we will fit a standard logistic regression model with the previous Predictors and look at the standard errors.
+
+```{r}
+glm1 = glm(PlayoffAppearanceIndicator ~ FGA + FTM + OREB + PLUS_MINUS, family = binomial, data = NBATeamData)
+
+summary(glm1)
+
+# check for multicollinearity
+car::vif(glm1)
+```
+
+At the $\alpha = 0.05$ significance level, only `PLUS_MINUS` is a significant predictor of playoff appearance when the remaining variables are included in the model. When checking for variance inflation factors, the predictors are all around 1 so we can say that collinearity is not a problem for this model.  
+
+
+

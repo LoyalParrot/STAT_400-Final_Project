@@ -23,10 +23,7 @@ library(skimr)
 library(GGally)
 library(glmnet)
 library(here) # for directory matching
-
-# Load cleaned dataset:
 # NOTE: here::here() will use STAT_400-Final_Project/ as the root directory
-NBATeamData = read.csv(here::here("data", "CleanedData", "NBATeamData.csv"))
 ```
 
 ## Data Wrangling/Cleaning
@@ -37,9 +34,9 @@ For the data wrangling portion of this project, our original data set had each o
 
 # Datasets
 ## Raw Data Source Link: https://github.com/NocturneBear/NBA-Data-2010-2024/blob/main/regular_season_totals_2010_2024.csv
-NBAGameData <- read.csv("RawData/regular_season_totals_2010_2024.csv")
+NBAGameData <- read.csv("data/RawData/regular_season_totals_2010_2024.csv")
 ## I manually made a csv from this site using Google Sheets: https://basketball.realgm.com/nba/playoffs/history/2010
-NBAPlayoffTeamsPerYear <- read.csv("RawData/NBA_Playoff_Data.csv")
+NBAPlayoffTeamsPerYear <- read.csv("data/RawData/NBA_Playoff_Data.csv")
 ```
 
 ```{r}
@@ -123,7 +120,7 @@ NBATeamData <-
             by=c("TEAM_NAME", "SEASON_YEAR"))
 
 ## Perform save, Uncomment below if you want it
-#write_csv(NBATeamData, "CleanedData/NBATeamData.csv")
+#write_csv(NBATeamData, "data/CleanedData/NBATeamData.csv")
 ```
 
 

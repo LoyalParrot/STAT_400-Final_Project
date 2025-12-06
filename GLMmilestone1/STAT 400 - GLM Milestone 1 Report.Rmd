@@ -30,7 +30,6 @@ A single observation in this dataset will be a NBA team during a given season.
 
 ## Variable Description
 
-<<<<<<< HEAD
 **SEASON_YEAR** - a variable describing the season in which a given team played (2011 to 2024) - Categorical, 14 Levels
 
 **TEAM_NAME** - describes a teams name and the city they play for - Categorical, 30 Levels
@@ -130,7 +129,6 @@ PLUS_MINUS - average number of points scored more than opponent
 WINPCT - a teams win percentage on the season
 
 CONFERENCE - a variable describing which conference a team is in taking values "Western" or "Eastern"
->>>>>>> refs/remotes/origin/main
 
 ### Response Variable
 

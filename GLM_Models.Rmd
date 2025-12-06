@@ -1,0 +1,85 @@
+---
+title: "STAT 400 - GLM Milestone 2 & EDA"
+author: "Ishan Agrahar, Jake Sturges, Noah Tobias, Prajwal Bhandari"
+date: "2025-12-03"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = here::here())
+```
+
+## FRONT MATTER
+```{r}
+# Libraries
+library(tidyverse)
+library(pROC)
+library(car)
+# NOTE: here::here() will use STAT_400-Final_Project/ as the root directory
+NBATeamData = read.csv(here::here("data", "CleanedData", "NBATeamData.csv"))
+```
+
+## Comparing Predictive Power and Signal Strength NBA Playoff Appearance from Defensive and Offensive Variable Sets.
+
+For the remainder of the analysis, we will answer the following question by comparing GLMs predicting if a team makes it to the NBA Playoffs or not: What set of variables, defensive or offensive, have higher predictive strength for playoff appearance? To do the analysis, we will compare three different models: one with only defensive statistics, one with only offensive statistics, and one with the two combined. For model selection, we will use `step()` with two-way variable selection with AIC as the metric.
+
+When considering the variables in the dataset, some variables have both attempts and the number made (for three pointers, field goals, etc.). We will use the number made since the attempts do not show the full picture and are still highly correlated with the number made.
+
+Finally, there is one key assumption to make for the analysis: a team's performance in one given year is independent of their performance in the year prior. We acknowledge that this is not necessarily true in reality and we are taking on this assumption for the purposes of the project.
+
+
+First we will make an 80/20 split for the data and define the sets of variables.
+
+```{r}
+# make split
+idx = sample(1:nrow(NBATeamData), floor(0.8*nrow(NBATeamData)))
+train = NBATeamData[idx,]
+val = NBATeamData[-idx,]
+
+defense = c("DREB", "STL", "BLK", "BLKA","PF", "PlayoffAppearanceIndicator")
+offense = c("FGM", "FTM", "AST", "OREB", "TOV", "PTS", "PlayoffAppearanceIndicator")
+both = c(defense, offense)[-13] # remove second indicator
+```
+
+Now we will define the training sets for the three models, build the null and full models, then run stepwise selection with AIC as the criterion.
+
+```{r}
+train_defense = train %>% select(all_of(defense))
+train_offense = train %>% select(all_of(offense))
+train_all = train %>% select(all_of(both))
+
+defense_full = glm(PlayoffAppearanceIndicator ~ ., data = train_defense, family = binomial)
+defense_null = glm(PlayoffAppearanceIndicator ~ 1, data = train_defense, family = binomial)
+offense_full = glm(PlayoffAppearanceIndicator ~ ., data = train_offense, family = binomial)
+offense_null = glm(PlayoffAppearanceIndicator ~ 1, data = train_offense, family = binomial)
+all_full = glm(PlayoffAppearanceIndicator ~ ., data = train_all, family = binomial)
+all_null = glm(PlayoffAppearanceIndicator ~ 1, data = train_all, family = binomial)
+
+defense_final = step(defense_null, scope = list(lower = defense_null, upper = defense_full), direction = 'both', k = 2, trace = 0)
+offense_final = step(offense_null, scope = list(lower = offense_null, upper = offense_full), direction = 'both', k = 2, trace = 0)
+all_final = step(all_null, scope = list(lower = all_null, upper = all_full), direction = 'both', k = 2, trace = 0)
+```
+
+Use the models to make predictions and show confusion matrices as well as ROC curves.
+
+```{r}
+pprobs_defense = predict(defense_final, newdata = val, type = 'response') # pprobs = predicted probabilities
+pprobs_offense = predict(offense_final, newdata = val, type = 'response')
+pprobs_all = predict(all_final, newdata = val, type = 'response')
+
+# roc curves 
+# First ROC — creates the plot
+roc_def = roc(response = val$PlayoffAppearanceIndicator, predictor = pprobs_defense,
+              plot = TRUE, print.auc = TRUE, col = "red", legacy.axes = TRUE)
+
+# Second ROC — add on top
+roc_off = roc(response = val$PlayoffAppearanceIndicator, predictor = pprobs_offense,
+              plot = TRUE, print.auc = TRUE, col = "blue", legacy.axes = TRUE)
+
+# Third ROC — add on top
+roc_all = roc(response = val$PlayoffAppearanceIndicator, predictor = pprobs_all,
+               plot = TRUE, print.auc = TRUE, col = "darkgreen", legacy.axes = TRUE)
+
+```
+

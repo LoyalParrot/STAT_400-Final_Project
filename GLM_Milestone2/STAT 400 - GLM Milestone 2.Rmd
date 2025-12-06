@@ -10,10 +10,6 @@ knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_knit$set(root.dir = here::here())
 ```
 
-Our goal of this logistic regression is to predict whether a team will make the playoffs and as such our response variable will be a binary response which takes values of (1) for a team that made the playoffs and (0) for a team that did not make the playoffs.
-
-A single observation in this dataset will be a NBA team during a given season.
-
 ## FRONT MATTER
 ```{r}
 # Libraries
@@ -25,6 +21,10 @@ library(glmnet)
 library(here) # for directory matching
 # NOTE: here::here() will use STAT_400-Final_Project/ as the root directory
 ```
+
+## Research Question
+
+The research question of this logistic regression product is: what set of predictor variables, defensive or offensive, have higher predictive strength when predicting playoff appearances?
 
 ## Data Wrangling/Cleaning
 

@@ -10,6 +10,10 @@ knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_knit$set(root.dir = here::here())
 ```
 
+Our goal of this logistic regression is to predict whether a team will make the playoffs and as such our response variable will be a binary response which takes values of (1) for a team that made the playoffs and (0) for a team that did not make the playoffs.
+
+A single observation in this dataset will be a NBA team during a given season.
+
 ## FRONT MATTER
 ```{r}
 # Libraries
@@ -21,10 +25,6 @@ library(glmnet)
 library(here) # for directory matching
 # NOTE: here::here() will use STAT_400-Final_Project/ as the root directory
 ```
-
-## Research Question
-
-The research question of this logistic regression product is: what set of predictor variables, defensive or offensive, have higher predictive strength when predicting playoff appearances?
 
 ## Data Wrangling/Cleaning
 
@@ -317,18 +317,16 @@ Building off earlier these two graphics seem to show that win % is affected by d
 
 ### Correlation Heatmap
 
+Instead of selecting every single numeric variable, we instead do correlations on the percentages of game statistics like field goals or 3 pointers and include the other numeric variables which do not have percentages.
+
 ```{r}
-# get all numeric variables
-numerics = as.vector(names(NBATeamData[sapply(names(NBATeamData), \(x) is.numeric(NBATeamData[[x]])) == TRUE]))[-23] # remove PlayoffAppearanceIndicator
-
 num_vars <- NBATeamData %>%
-  select(all_of(numerics))
-
+  select(WINPCT, PTS, FG_PCT, FG3_PCT, FTPCT,
+         OREB, DREB, REB, AST, STL, BLK, TOV, PLUS_MINUS)
 cor_matrix <- cor(num_vars)
-
 GGally::ggcorr(num_vars, label = TRUE)
 ```
 
-The correlation heatmap shows several clear relationships among team performance variables. WINPCT is most strongly correlated with PTS (0.70), FG_PCT (0.60), and PLUS_MINUS (0.60), suggesting that efficient scoring and overall point differential are closely tied to winning games. Assists and three-point percentage also show moderate positive correlations with WINPCT.
+The correlation heatmap shows several clear relationships among team performance variables. WINPCT is most strongly correlated with PTS (0.70), FG_PCT (0.60), and FG3_PCT (0.60), suggesting that efficient scoring is closely tied to winning games. There is a perfect correlation with PLUS_MINUS, which is exactly what we would expect. Its interesting to see that offensive rebounds and turnovers are negatively correlated with WINPCT, PTS, FG_PCT, and other scoring metrics. Assists and three-point percentage also show moderate positive correlations with WINPCT.
 
 Among predictors, strong internal correlations also appear — for example, REB is highly correlated with DREB (0.80), and FG_PCT is moderately correlated with PTS (0.40). These relationships indicate some redundancy among variables, meaning multicollinearity may need to be considered later when selecting predictors for the final GLM. Overall, the heatmap supports the idea that offensive efficiency, point differential, and scoring are the strongest statistical drivers of team success.

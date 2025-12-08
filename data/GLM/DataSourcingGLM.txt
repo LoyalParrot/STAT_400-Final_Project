@@ -1,0 +1,7 @@
+Note that Cleaned Data was made from data files in Raw Data.
+
+Sourcing for Raw Data is as follows:
+
+For regular_season_totals_2010_2024.csv: https://github.com/NocturneBear/NBA-Data-2010-2024/blob/main/regular_season_totals_2010_2024.csv
+
+For NBA_Playoff_Data.csv: This was made through google sheets where the data was sourced from https://basketball.realgm.com/nba/playoffs/history/2010

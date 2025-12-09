@@ -1,0 +1,77 @@
+---
+title: "STAT_400-MLM_Milestone1"
+author: "Ishan Agrahar, Jake Sturges, Noah Tobias, Prajwal Bhandari"
+date: "2025-12-09"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Front Matter
+
+```{r}
+# Libraries
+library(tidyverse)
+
+# Dataset Read-In
+testScores <- read.csv("data/test_scores.csv")
+```
+
+
+## Dataset Choice
+
+The dataset that our group chose for the MLM portion of the project is Dataset 1 (Education Related).
+
+This dataset is from Kaggle and is titled *Predict Test Scores of students*.
+
+You may find the dataset online at the following link: <https://www.kaggle.com/datasets/kwadwoofosu/predict-test-scores-of-students/data>
+
+```{r}
+glimpse(testScores)
+```
+
+The Kaggle page already has descriptions for the data so I shall simply copy paste it here for reference.
+
+`school` - Name of the school the student is enrolled in - Categorical, 23 Levels
+
+`school_setting` - The location of the school - Categorical, 3 Levels
+
+`school_type` - The type of school. Either public or non-public - Categorical, 2 Levels
+
+`classroom` - The type of classroom - Categorical, 97 Levels
+
+`teaching_method` - Teaching methods: Either experimental or Standard - Categorical, 2 Levels
+
+`n_student` - Number of students in the class - Quantitative
+
+`student_id` - A unique ID for each student - Categorical, 2133 Levels
+
+`gender` - The gender of the students: male or female - Categorical, 2 Levels
+
+`lunch` - Whether a student qualifies for free/subsidized lunch or not - Categorical, 2 Levels
+
+`pretest` - The pretest score of the students out of 100 - Quantitative
+
+`posttest` - The posttest scores of the students out of 100 - Quantitative
+
+## Research Question
+
+The research question that our group asks is what is the association between a schools setting and a schools teaching method?
+
+## Response
+
+## Level 1 Observational Units
+
+
+
+## Level 2 Observational Units
+
+## Level 1 Variables
+
+## Level 2 Variables
+
+## Fixed Effects
+
+## Random Effects

@@ -60,8 +60,11 @@ The Kaggle page already has descriptions for the data so I shall simply copy pas
 
 The research question that our group asks is what is the association between a school's setting and their student's post test scores, controlling for the student's pretest, and whether teaching_method has an effect on this association?
 
-## Response
+## Research Question
 
+The research question that our group asks is: how do student-level predictors (e.g., gender, pretest score, free/reduced lunch, and classroom-level factors (e.g., class size, teaching method) jointly influence student performance, after accounting for baseline differences across schools
+
+## Response
 The response variable is the `posttest` score.
 
 ## Level 1 Observational Units
@@ -70,7 +73,7 @@ The Level 1 Observational Units are the individual students
 
 ## Level 2 Observational Units
 
-The Level 2 Observational Units are the individual classes.
+The Level 2 Observational Units in our question are the schools. 
 
 ## Level 1 Variables
 
@@ -78,12 +81,12 @@ The Level 1 Variables are: `student_id`, `gender`, `lunch`, `pretest`, and `post
 
 ## Level 2 Variables
 
-The Level 2 Variables are: `school`, `school_setting`, `school_type`, `classroom`, `teaching_method`, and `n_student`.
+The Level 2 Variables are: `school`, `school_setting`, `school_type`, and `teaching_method`.
 
 ## Fixed Effects
 
-The fixed effects for our research question are: `teaching_method`, `school_setting`, and `pretest`
+The fixed effects for our research question are: `teaching_method`, `lunch`, `gender` and `pretest`
 
 ## Random Effects
 
-The random effects for our research question are: the `classroom`
+The random effects for our research question are: the school.

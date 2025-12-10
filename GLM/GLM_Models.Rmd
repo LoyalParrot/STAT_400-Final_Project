@@ -16,8 +16,9 @@ knitr::opts_knit$set(root.dir = here::here())
 library(tidyverse)
 library(pROC)
 library(car)
+library(caret)
 # NOTE: here::here() will use STAT_400-Final_Project/ as the root directory
-NBATeamData = read.csv(here::here("data", "CleanedData", "NBATeamData.csv"))
+NBATeamData = read.csv(here::here("glm","data", "CleanedData", "NBATeamData.csv"))
 ```
 
 ## Comparing Predictive Power and Signal Strength NBA Playoff Appearance from Defensive and Offensive Variable Sets.
@@ -37,8 +38,8 @@ idx = sample(1:nrow(NBATeamData), floor(0.8*nrow(NBATeamData)))
 train = NBATeamData[idx,]
 val = NBATeamData[-idx,]
 
-defense = c("DREB", "STL", "BLK", "BLKA","PF", "PlayoffAppearanceIndicator")
-offense = c("FGM", "FTM", "AST", "OREB", "TOV", "PTS", "PlayoffAppearanceIndicator")
+defense = c("DREB", "STL", "BLK", "BLK","PF", "PlayoffAppearanceIndicator")
+offense = c("FGM", "FTM", "AST", "OREB", "BLKA", "TOV", "PTS", "PlayoffAppearanceIndicator")
 both = c(defense, offense)[-13] # remove second indicator
 ```
 
@@ -61,25 +62,95 @@ offense_final = step(offense_null, scope = list(lower = offense_null, upper = of
 all_final = step(all_null, scope = list(lower = all_null, upper = all_full), direction = 'both', k = 2, trace = 0)
 ```
 
+Lets now take a look at the three final models produced and the predictor variables included, starting with the defense model. 
+
+```{r}
+summary(defense_final)
+```
+
+In the model that only uses the defensive variables to predict playoff appearances for a team, we see that defensive rebounds, steals, and personal fouls are significant predictors at the 5\% level. The negative on the `PF` coefficient indicates that personal fouls reduce the odds of winning. We will exponentiate the exponents for more interpretable meanings for the coefficients and confidence intervals.
+
+```{r}
+exp(confint(defense_final))
+```
+
+Using profile confidence intervals, we can interpret the coefficients as such: a 1 rebound increase in the defensive rebound mean changes the odds of making the playoffs by a factor between 1.16 and 1.50, each +1 increase in the steal mean changes the odds of making the playoffs by a factor between 1.25 and 2.33, each +1 increase in the mean personal fouls changes the odds of making the playoffs by a factor between 0.63 and 0.92 which is a reduction, and finally each +1 block in the mean changes the odds of making it to the playoffs by a factor between 1.02 and 1.97. 
+
+Next, we will examine the model with only offensive variables. 
+
+```{r}
+summary(offense_final)
+```
+
+Here, we see 3 predictors, all of which are significant at the 5\% level. However, blocks against and turnovers are negative indicating a reduction in the log odds and odds.
+
+```{r}
+exp(confint(offense_final))
+```
+
+For a +1 increase in the mean blocks against, the odds of making the playoffs changes byt a factor between 0.15 and 0.37. For a +1 increase in mean free throws made, the odds of making the playoffs change by a factor between 1.26 and 1.74. Finally for a +1 increase in mean turnovers, the odds of making it to the playoffs change by a factor between 0.53 and 0.85. 
+
+Finally, we will consider the final model including both sets of variables.
+
+```{r}
+summary(all_final)
+```
+
+When we consider the model created with both sets of variables, the picture changes. Out of all 12 variables, only 7 were selected and only 5 are significant predictors at the 5\% level. The 5 significant predictors are blocks against, free throws made, turnovers, steals, defensive rebounds. 
+
+```{r}
+exp(confint(all_final))
+```
+Variables that significantly reduce odds of winning for a +1 increase in mean statistic are blocks against and turnovers, while the variables that significantly increase the odds of making the playoffs for the same increase in mean stats are free throws made, steals, and defensive rebounds.
+
 Use the models to make predictions and show confusion matrices as well as ROC curves.
 
 ```{r}
-pprobs_defense = predict(defense_final, newdata = val, type = 'response') # pprobs = predicted probabilities
-pprobs_offense = predict(offense_final, newdata = val, type = 'response')
-pprobs_all = predict(all_final, newdata = val, type = 'response')
+pprobs_defense = predict(defense_final, newdata = val, type = "response")
+pprobs_offense = predict(offense_final, newdata = val, type = "response")
+pprobs_all     = predict(all_final,     newdata = val, type = "response")
 
-# roc curves 
-# First ROC — creates the plot
-roc_def = roc(response = val$PlayoffAppearanceIndicator, predictor = pprobs_defense,
-              plot = TRUE, print.auc = TRUE, col = "red", legacy.axes = TRUE)
+# set threshold at 0.5 
+thr = 0.5
 
-# Second ROC — add on top
-roc_off = roc(response = val$PlayoffAppearanceIndicator, predictor = pprobs_offense,
-              plot = TRUE, print.auc = TRUE, col = "blue", legacy.axes = TRUE)
+pred_def  = ifelse(pprobs_defense >= thr, 1, 0)
+pred_off  = ifelse(pprobs_offense >= thr, 1, 0)
+pred_all  = ifelse(pprobs_all     >= thr, 1, 0)
 
-# Third ROC — add on top
-roc_all = roc(response = val$PlayoffAppearanceIndicator, predictor = pprobs_all,
-               plot = TRUE, print.auc = TRUE, col = "darkgreen", legacy.axes = TRUE)
+cm_def = confusionMatrix(factor(pred_def), factor(val$PlayoffAppearanceIndicator), positive = "1")
+cm_off = confusionMatrix(factor(pred_off), factor(val$PlayoffAppearanceIndicator), positive = "1")
+cm_all = confusionMatrix( factor(pred_all), factor(val$PlayoffAppearanceIndicator), positive = "1")
 
+# Extract convenience metrics
+metrics = data.frame(
+  Model     = c("Defense", "Offense", "Combined"),
+  Accuracy  = c(cm_def$overall["Accuracy"],  cm_off$overall["Accuracy"],  cm_all$overall["Accuracy"]),
+  Precision = c(cm_def$byClass["Precision"], cm_off$byClass["Precision"], cm_all$byClass["Precision"]),
+  Recall    = c(cm_def$byClass["Recall"],    cm_off$byClass["Recall"],    cm_all$byClass["Recall"]),
+  F1        = c(cm_def$byClass["F1"],        cm_off$byClass["F1"],        cm_all$byClass["F1"])
+)
+
+print(metrics)
+```
+
+TODO: ... write stuff about metrics... 
+
+
+
+Now lets look at the ROC Curves
+
+```{r}
+roc_def = roc(val$PlayoffAppearanceIndicator, pprobs_defense)
+roc_off = roc(val$PlayoffAppearanceIndicator, pprobs_offense)
+roc_all = roc(val$PlayoffAppearanceIndicator, pprobs_all)
+
+plot(roc_def, col = "red", legacy.axes = TRUE, print.auc = TRUE, print.auc.y = 0.4)
+plot(roc_off, col = "blue", add = TRUE, print.auc = TRUE, print.auc.y = 0.3)
+plot(roc_all, col = "darkgreen", add = TRUE, print.auc = TRUE, print.auc.y = 0.2)
+
+legend("bottomright",
+       legend = c("Defense", "Offense", "Combined"),
+       col    = c("red", "blue", "darkgreen"),
+       lwd    = 2)
 ```
 

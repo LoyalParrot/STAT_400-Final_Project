@@ -364,8 +364,8 @@ Bhandari</h4>
 library(tidyverse)</code></pre>
 <pre><code>## ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
 ## ✔ dplyr     1.1.4     ✔ readr     2.1.5
-## ✔ forcats   1.0.1     ✔ stringr   1.5.2
-## ✔ ggplot2   4.0.0     ✔ tibble    3.3.0
+## ✔ forcats   1.0.0     ✔ stringr   1.5.1
+## ✔ ggplot2   4.0.1     ✔ tibble    3.3.0
 ## ✔ lubridate 1.9.4     ✔ tidyr     1.3.1
 ## ✔ purrr     1.1.0     
 ## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
@@ -428,6 +428,14 @@ between a school’s setting and their student’s post test scores,
 controlling for the student’s pretest, and whether teaching_method has
 an effect on this association?</p>
 </div>
+<div id="research-question-1" class="section level2">
+<h2>Research Question</h2>
+<p>The research question that our group asks is: how do student-level
+predictors (e.g., gender, pretest score, free/reduced lunch, and
+classroom-level factors (e.g., class size, teaching method) jointly
+influence student performance, after accounting for baseline differences
+across schools</p>
+</div>
 <div id="response" class="section level2">
 <h2>Response</h2>
 <p>The response variable is the <code>posttest</code> score.</p>
@@ -438,7 +446,7 @@ an effect on this association?</p>
 </div>
 <div id="level-2-observational-units" class="section level2">
 <h2>Level 2 Observational Units</h2>
-<p>The Level 2 Observational Units are the individual classes.</p>
+<p>The Level 2 Observational Units in our question are the schools.</p>
 </div>
 <div id="level-1-variables" class="section level2">
 <h2>Level 1 Variables</h2>
@@ -449,20 +457,18 @@ an effect on this association?</p>
 <div id="level-2-variables" class="section level2">
 <h2>Level 2 Variables</h2>
 <p>The Level 2 Variables are: <code>school</code>,
-<code>school_setting</code>, <code>school_type</code>,
-<code>classroom</code>, <code>teaching_method</code>, and
-<code>n_student</code>.</p>
+<code>school_setting</code>, <code>school_type</code>, and
+<code>teaching_method</code>.</p>
 </div>
 <div id="fixed-effects" class="section level2">
 <h2>Fixed Effects</h2>
 <p>The fixed effects for our research question are:
-<code>teaching_method</code>, <code>school_setting</code>, and
-<code>pretest</code></p>
+<code>teaching_method</code>, <code>lunch</code>, <code>gender</code>
+and <code>pretest</code></p>
 </div>
 <div id="random-effects" class="section level2">
 <h2>Random Effects</h2>
-<p>The random effects for our research question are: the
-<code>classroom</code></p>
+<p>The random effects for our research question are: the school.</p>
 </div>
 
 

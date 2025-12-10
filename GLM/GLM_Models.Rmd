@@ -133,9 +133,7 @@ metrics = data.frame(
 print(metrics)
 ```
 
-TODO: ... write stuff about metrics... 
-
-
+We expected the combined model to be better than both the defense and offense model, but it is surprising to see that the model with only offense variables outperformed the model with only defense variables in every single metric above.
 
 Now lets look at the ROC Curves
 

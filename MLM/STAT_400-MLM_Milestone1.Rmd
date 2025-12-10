@@ -58,7 +58,7 @@ The Kaggle page already has descriptions for the data so I shall simply copy pas
 
 ## Research Question
 
-The research question that our group asks is what is the association between a school's setting and their student's post test scores, and whether teaching_method has an effect on this association?
+The research question that our group asks is what is the association between a school's setting and their student's post test scores, controlling for the student's pretest, and whether teaching_method has an effect on this association?
 
 ## Response
 
@@ -82,8 +82,8 @@ The Level 2 Variables are: `school`, `school_setting`, `school_type`, `classroom
 
 ## Fixed Effects
 
-The fixed effects for our research question are: `teaching_method` and `school_setting`
+The fixed effects for our research question are: `teaching_method`, `school_setting`, and `pretest`
 
 ## Random Effects
 
-The random effects for our research question are: the student (which is identified by the unique `student_id`).
+The random effects for our research question are: the `classroom`

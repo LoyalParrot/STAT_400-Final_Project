@@ -34,7 +34,7 @@ For the data wrangling portion of this project, our original data set had each o
 
 # Datasets
 ## Raw Data Source Link: https://github.com/NocturneBear/NBA-Data-2010-2024/blob/main/regular_season_totals_2010_2024.csv
-NBAGameData <- read.csv("data/RawData/regular_season_totals_2010_2024.csv")
+NBAGameData <- read.csv("GLM/data/RawData/regular_season_totals_2010_2024.csv")
 ## I manually made a csv from this site using Google Sheets: https://basketball.realgm.com/nba/playoffs/history/2010
 NBAPlayoffTeamsPerYear <- read.csv("GLM/data/RawData/NBA_Playoff_Data.csv")
 ```

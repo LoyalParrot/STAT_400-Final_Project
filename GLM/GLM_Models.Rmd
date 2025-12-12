@@ -1,5 +1,5 @@
 ---
-title: "STAT 400 - GLM Milestone 2 & EDA"
+title: "STAT 400 - GLM Analysis"
 author: "Ishan Agrahar, Jake Sturges, Noah Tobias, Prajwal Bhandari"
 date: "2025-12-03"
 output: html_document
@@ -11,7 +11,7 @@ knitr::opts_knit$set(root.dir = here::here())
 ```
 
 ## FRONT MATTER
-```{r}
+```{r, message = FALSE}
 # Libraries
 library(tidyverse)
 library(pROC)
@@ -34,6 +34,7 @@ First we will make an 80/20 split for the data and define the sets of variables.
 
 ```{r}
 # make split
+set.seed(0) # for reproducibility
 idx = sample(1:nrow(NBATeamData), floor(0.8*nrow(NBATeamData)))
 train = NBATeamData[idx,]
 val = NBATeamData[-idx,]
@@ -66,44 +67,51 @@ Lets now take a look at the three final models produced and the predictor variab
 
 ```{r}
 summary(defense_final)
+
+# check multicollinearity
+car::vif(defense_final)
 ```
 
-In the model that only uses the defensive variables to predict playoff appearances for a team, we see that defensive rebounds, steals, and personal fouls are significant predictors at the 5\% level. The negative on the `PF` coefficient indicates that personal fouls reduce the odds of winning. We will exponentiate the exponents for more interpretable meanings for the coefficients and confidence intervals.
+In the model that only uses the defensive variables to predict playoff appearances for a team, we see that only defensive rebound and steals are significant predictors at the 5\% level. The negative on the `PF` coefficient indicates that personal fouls reduce the odds of winning. We will exponentiate the model coefficients for more interpretable meanings and confidence intervals. Multicollinearity is also not an issue in this model as all the variance inflation factors are near 1.
 
 ```{r}
 exp(confint(defense_final))
 ```
 
-Using profile confidence intervals, we can interpret the coefficients as such: a 1 rebound increase in the defensive rebound mean changes the odds of making the playoffs by a factor between 1.16 and 1.50, each +1 increase in the steal mean changes the odds of making the playoffs by a factor between 1.25 and 2.33, each +1 increase in the mean personal fouls changes the odds of making the playoffs by a factor between 0.63 and 0.92 which is a reduction, and finally each +1 block in the mean changes the odds of making it to the playoffs by a factor between 1.02 and 1.97. 
+Using profile confidence intervals at a 95\% confidence level, we can interpret the coefficients as such: a 1 rebound increase in the defensive rebound mean changes the odds of making the playoffs by a factor between 1.20 and 1.57, each +1 increase in the steal mean changes the odds of making the playoffs by a factor between 1.32 and 2.45, each +1 increase in the mean personal fouls changes the odds of making the playoffs by a factor between 0.68 and 0.96 which is a reduction, and finally each +1 block in the mean changes the odds of making it to the playoffs by a factor between 0.97 and 1.88. 
 
 Next, we will examine the model with only offensive variables. 
 
 ```{r}
 summary(offense_final)
+
+car::vif(offense_final)
 ```
 
-Here, we see 3 predictors, all of which are significant at the 5\% level. However, blocks against and turnovers are negative indicating a reduction in the log odds and odds.
+Here, we see 4 predictors: blocks against, free throws made, turnovers, and field goals made, of which only two are significant at the 5\% level with blocks against and free throws made being the most significant. Blocks against and turnovers are negative indicating a reduction in the log odds and odds. Like before, multicollinearity is also not an issue in this model as all the variance inflation factors are near 1.
 
 ```{r}
 exp(confint(offense_final))
 ```
 
-For a +1 increase in the mean blocks against, the odds of making the playoffs changes byt a factor between 0.15 and 0.37. For a +1 increase in mean free throws made, the odds of making the playoffs change by a factor between 1.26 and 1.74. Finally for a +1 increase in mean turnovers, the odds of making it to the playoffs change by a factor between 0.53 and 0.85. 
+At a 95\% confidence level, we can make the following inferencs. For a +1 increase in the mean blocks against, the odds of making the playoffs changes byt a factor between 0.16 and 0.39, indicating a reduction in odds. For a +1 increase in mean free throws made, the odds of making the playoffs change by a factor between 1.23 and 1.69. For a +1 increase in mean turnovers, the odds of making it to the playoffs change by a factor between 0.60 and 0.96, indicating a reduction in odds. Finally for a +1 increase in mean field goals made, the odds of making it to the playoffs change by a factor between 0.98 and 1.20.
 
 Finally, we will consider the final model including both sets of variables.
 
 ```{r}
 summary(all_final)
+
+car::vif(all_final)
 ```
 
-When we consider the model created with both sets of variables, the picture changes. Out of all 12 variables, only 7 were selected and only 5 are significant predictors at the 5\% level. The 5 significant predictors are blocks against, free throws made, turnovers, steals, defensive rebounds. 
+When we consider the model created with both sets of variables, the picture changes. Out of all 12 variables, only 7 were selected and only 5 are significant predictors at the 5\% level. The 5 significant predictors are blocks against, free throws made, turnovers, steals, defensive rebounds. Just like the two previous models, multicollinearity is not an issue in this model as all the variance inflation factors are near 1. The highest value is 1.70, but this is still a healthy metric for multiple regression models. 
 
 ```{r}
 exp(confint(all_final))
 ```
-Variables that significantly reduce odds of winning for a +1 increase in mean statistic are blocks against and turnovers, while the variables that significantly increase the odds of making the playoffs for the same increase in mean stats are free throws made, steals, and defensive rebounds.
+At a 95\% confidence level, we can make inferences in the same manner as above but what is more interesting is seeing which statistics reduce the odds of making it to the playoffs, and which ones increase odds. Team statistics that significantly reduce odds of winning for a +1 increase in mean statistic are blocks against and turnovers, while the variables that significantly increase the odds of making the playoffs for a +1 increase mean stats are free throws made, steals, and defensive rebounds.
 
-Use the models to make predictions and show confusion matrices as well as ROC curves.
+Now we will use the models to make predictions and show confusion matrices as well as ROC curves, to compare predictive strength. Of course, we expect the model with both sets of variables to perform the best, but it is still in our interest to compare the 'offense model' again the 'defense model'
 
 ```{r}
 pprobs_defense = predict(defense_final, newdata = val, type = "response")
@@ -133,15 +141,17 @@ metrics = data.frame(
 print(metrics)
 ```
 
-We expected the combined model to be better than both the defense and offense model, but it is surprising to see that the model with only offense variables outperformed the model with only defense variables in every single metric above.
+For all of the metrics above, the offense model actually outperformed the defense model.  
 
-Now lets look at the ROC Curves
+Now we will look at the ROC Curves and compare the AUC of the models.
 
-```{r}
+```{r, message = FALSE}
 roc_def = roc(val$PlayoffAppearanceIndicator, pprobs_defense)
 roc_off = roc(val$PlayoffAppearanceIndicator, pprobs_offense)
 roc_all = roc(val$PlayoffAppearanceIndicator, pprobs_all)
+```
 
+```{r}
 plot(roc_def, col = "red", legacy.axes = TRUE, print.auc = TRUE, print.auc.y = 0.4)
 plot(roc_off, col = "blue", add = TRUE, print.auc = TRUE, print.auc.y = 0.3)
 plot(roc_all, col = "darkgreen", add = TRUE, print.auc = TRUE, print.auc.y = 0.2)
@@ -152,3 +162,4 @@ legend("bottomright",
        lwd    = 2)
 ```
 
+The ROC curves show that both defense and offense are necessary to predict playoff appearances in NBA teams. Although in this case, the offense model has a much higher AUC (by 0.08), we acknowledge that this is highly sensitive to the seed used and a more thorough analysis should utilize cross validation or Monte Carlo simulation to produce a more complete picture of how these statistics behave and what their true predictive powers are, when separating offensive and defensive team statistics.

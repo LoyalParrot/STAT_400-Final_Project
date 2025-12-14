@@ -1,0 +1,353 @@
+---
+title: "STAT_400-MLM_Milestone1"
+author: "Ishan Agrahar, Jake Sturges, Noah Tobias, Prajwal Bhandari"
+date: "2025-12-09"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Front Matter
+
+```{r}
+# Libraries
+library(tidyverse)
+library(kableExtra)
+library(GGally)
+library(lme4)
+
+# Dataset Read-In
+testScores <- read.csv("data/test_scores.csv")
+```
+
+
+## Dataset Choice & Description
+
+The dataset that our group chose for the MLM portion of the project is Dataset 1 (Education Related).
+
+This dataset is from Kaggle and is titled *Predict Test Scores of students*.
+
+You may find the dataset online at the following link: <https://www.kaggle.com/datasets/kwadwoofosu/predict-test-scores-of-students/data>
+
+```{r}
+glimpse(testScores)
+```
+
+The Kaggle page already has descriptions for the data so I shall simply copy paste it here for reference.
+
+`school` - Name of the school the student is enrolled in - Categorical, 23 Levels
+
+`school_setting` - The location of the school - Categorical, 3 Levels
+
+`school_type` - The type of school. Either public or non-public - Categorical, 2 Levels
+
+`classroom` - The type of classroom - Categorical, 97 Levels
+
+`teaching_method` - Teaching methods: Either experimental or Standard - Categorical, 2 Levels
+
+`n_student` - Number of students in the class - Quantitative
+
+`student_id` - A unique ID for each student - Categorical, 2133 Levels
+
+`gender` - The gender of the students: male or female - Categorical, 2 Levels
+
+`lunch` - Whether a student qualifies for free/subsidized lunch or not - Categorical, 2 Levels
+
+`pretest` - The pretest score of the students out of 100 - Quantitative
+
+`posttest` - The posttest scores of the students out of 100 - Quantitative
+
+## Research Question
+
+The research question that our group asks is what is the association between a class's teaching method (standard vs. experimental) and their student's post test scores, controlling for the student's pretest.
+
+### Response
+
+The response variable is the `posttest` score.
+
+### Level 1 Observational Units
+
+The Level 1 Observational Units are the individual students
+
+### Level 2 Observational Units
+
+The Level 2 Observational Units in our question are the individual classrooms
+
+### Level 1 Variables
+
+The Level 1 Variables are: `pretest`, and `posttest`.
+
+### Level 2 Variables
+
+The Level 2 Variables are: `teaching_method`.
+
+### Fixed Effects
+
+The fixed effects for our research question are: `teaching_method` and `pretest`
+
+### Random Effects
+
+The random effects for our research question are: the classroom.
+
+## Exploratory Data Analysis
+
+From the research question, it is clear that the variables of this dataset that we are interested in are `posttest`, `teaching_method` and `pretest`. As such, we can take a glimpse into these variables specifically for a surface-level understanding of what these variables represent.
+
+```{r}
+testScores %>%
+  select(posttest, teaching_method, pretest) %>%
+  glimpse()
+```
+
+`posttest` - The posttest scores of the students out of 100 - Quantitative
+
+`teaching_method` - Teaching methods: Either experimental or Standard - Categorical, 2 Levels
+
+`pretest` - The pretest score of the students out of 100 - Quantitative
+
+The first step is now to do a univariate analysis on each of these variables.
+
+### Univariate Analysis
+
+#### Posttest Variable
+
+**Definition**: The posttest scores of the students out of 100
+
+**Type of Variable**: Quantitative
+
+**Input Type of Variable**: Any integer ranging from 0 to 100 inclusive.
+
+**Missing Observations in Variable**: 0
+
+The following is the calculation in R to find the missing observations for the above metric.
+
+```{r}
+sum(is.na(testScores$posttest))
+```
+
+##### Summary Statistics
+
+The following is the calculation in R to calculate summary statistics for the variable. Since the variable is quantitative, the summary statistics will include the five-number summary, mean, and standard deviation.
+
+```{r}
+testScores %>%
+  summarize(
+    Min = min(posttest, na.rm = TRUE),
+    Q1 = quantile(posttest, probs = 0.25, na.rm = TRUE),
+    Median = median(posttest, na.rm = TRUE),
+    Q3 = quantile(posttest, probs = 0.75, na.rm = TRUE),
+    Max = max(posttest, na.rm = TRUE),
+    Mean = mean(posttest, na.rm = TRUE),
+    StandardDeviation = sd(posttest, na.rm = TRUE)
+  ) %>%
+  kable()
+```
+
+The collected data seems to range from scores of 32 to 100 with quite a similar mean and median (roughly 67 and 68 respectively). This indicates that there is quite a range of values and it could be that there is a outlier pulling the mean down a little, but once again the difference between mean and median is quite negligible (68 - 67.1022 = 0.8978) in the scope of this variable description.
+
+##### Visualization
+
+```{r}
+ggplot(testScores, aes(posttest)) +
+  geom_histogram(color = "black", fill = "forestgreen", binwidth = 5) +
+  xlab("Post-Test Score") +
+  ylab("Count") +
+  ggtitle("Distribution of Post Test Scores")
+```
+
+Looking at the histogram, the data seems to be in the shape of a bell curve, but with the bucket in the center (bucket centered on posttest of 65) looking lower than its surrounding buckets which could be an anomaly. It could be considered bimodal in shape as well if we consider that bucket to be low. It also looks like there are some low frequency observations comparatively to the rest of the spread to the left of the bucket centered on posttest of 40.
+
+#### Teaching Method Variable
+
+**Definition**: The type of teaching method
+
+**Type of Variable**: Binary Categorical
+
+**Input Type of Variable**: "Standard" or "Experimental"
+
+**Missing Observations in Variable**: 0
+
+The following is the calculation in R to find the missing observations for the above metric.
+
+```{r}
+sum(is.na(testScores$teaching_method))
+```
+
+##### Summary Statistics
+
+The following is the calculation in R to calculate summary statistics for the variable. Since the variable is categorical, the summary statistics will include a table of possible values and include counts.
+
+```{r}
+testScores %>%
+  group_by(teaching_method) %>%
+  summarize(Count = n()) %>%
+  kable()
+```
+
+It is clear from the table that the two options for teaching method are Experimental and Standard where it seems that more students were taught with a standard teaching style comparative to an experimental teaching style (roughly double the students learned with standard). Nonetheless, there does seem to be a good amount of data for both teaching styles.
+
+##### Visualization
+
+Since the variable is categorical, the most appropriate visualization would be a bar plot.
+
+```{r}
+ggplot(testScores, aes(teaching_method)) +
+  geom_bar(color = "black", fill = "forestgreen") +
+  ylab("Count") +
+  ggtitle("Distribution of Teaching Method") +
+  xlab("Teaching Method")
+```
+
+This is once again confirming what we saw from the table above.  It is clear that more students were taught with a standard teaching style comparative to an experimental teaching style and the distinct doubling of quantity of students is visible in this visualization.
+
+#### Pretest Variable
+
+**Definition**: The pretest scores of the students out of 100
+
+**Type of Variable**: Quantitative
+
+**Input Type of Variable**: Any integer ranging from 0 to 100 inclusive.
+
+**Missing Observations in Variable**: 0
+
+The following is the calculation in R to find the missing observations for the above metric.
+
+```{r}
+sum(is.na(testScores$pretest))
+```
+
+##### Summary Statistics
+
+The following is the calculation in R to calculate summary statistics for the variable. Since the variable is quantitative, the summary statistics will include the five-number summary, mean, and standard deviation.
+
+```{r}
+testScores %>%
+  summarize(
+    Min = min(pretest, na.rm = TRUE),
+    Q1 = quantile(pretest, probs = 0.25, na.rm = TRUE),
+    Median = median(pretest, na.rm = TRUE),
+    Q3 = quantile(pretest, probs = 0.75, na.rm = TRUE),
+    Max = max(pretest, na.rm = TRUE),
+    Mean = mean(pretest, na.rm = TRUE),
+    StandardDeviation = sd(pretest, na.rm = TRUE)
+  ) %>%
+  kable()
+```
+
+The collected data seems to range from scores of 22 to 93 with quite a similar mean and median (roughly 55 and 56 respectively). This indicates that there is quite a range of values and it could be that there is a outlier pulling the mean down a little, but once again the difference between mean and median is quite negligible (56 - 54.95593 = 1.04407) in the scope of this variable description.
+
+##### Visualization
+
+```{r}
+ggplot(testScores, aes(pretest)) +
+  geom_histogram(color = "black", fill = "forestgreen", binwidth = 6) +
+  ylab("Count") +
+  ggtitle("Distribution of Pre-Test Scores") +
+  xlab("Pre-Test Score")
+```
+
+Looking at the histogram, the pretest seems to have a little but of a left skew. It is clearly visible that the highest count of pre-test scores is that of the bucket centered on a pretest score of 60.
+
+This concludes the univariate analysis.
+
+### Bivariate Analysis
+
+Our variables of interest are `posttest`, `teaching_method` and `pretest`. I will now compare two of them at a time.
+
+#### Teaching Method vs. Posttest
+
+First I will give the summary statistics.
+
+```{r}
+testScores %>%
+  group_by(teaching_method) %>%
+  summarize(
+    Min = min(posttest, na.rm = TRUE),
+    Q1 = quantile(posttest, probs = 0.25, na.rm = TRUE),
+    Median = median(posttest, na.rm = TRUE),
+    Q3 = quantile(posttest, probs = 0.75, na.rm = TRUE),
+    Max = max(posttest, na.rm = TRUE),
+    Mean = mean(posttest, na.rm = TRUE),
+    StandardDeviation = sd(posttest, na.rm = TRUE)
+  ) %>%
+  kable()
+```
+
+Comparing the median and means of both teaching methods, it seems an experimental teaching style is larger in both metrics. Looking at the spread with the standard deviation, they are both roughly the same at around 13.
+
+Since we are comparing a quantitative variable and categorical variable, side-by-side boxplots are the most appropriate visualization.
+
+```{r}
+ggplot(testScores, aes(teaching_method, posttest)) +
+  geom_boxplot(fill = "forestgreen") +
+  xlab("Teaching Method") +
+  ylab("Post-Test Score") +
+  ggtitle("Teaching Method vs. Post-Test Score")
+```
+
+Looking at the median posttest scores and corresponding quantiles, it looks like the post test scores for students studying in a classroom with an experimental teaching method tend to be higher. Looking at the IQR, the spread generally seems to be the same size. The overall range for posttest score for students under a standard teaching method seems to be a little bit larger with the minimum being lower.
+
+#### Teaching Method vs. Pretest
+
+First I will give the summary statistics.
+
+```{r}
+testScores %>%
+  group_by(teaching_method) %>%
+  summarize(
+    Min = min(pretest, na.rm = TRUE),
+    Q1 = quantile(pretest, probs = 0.25, na.rm = TRUE),
+    Median = median(pretest, na.rm = TRUE),
+    Q3 = quantile(pretest, probs = 0.75, na.rm = TRUE),
+    Max = max(pretest, na.rm = TRUE),
+    Mean = mean(pretest, na.rm = TRUE),
+    StandardDeviation = sd(pretest, na.rm = TRUE)
+  ) %>%
+  kable()
+```
+
+Comparing the median and means of both teaching methods, it seems an experimental teaching style is a bit larger in both metrics (this difference is a little less distinct than in post test scores). Looking at the spread with the standard deviation, they are both roughly the same at around 13 and 14 respectively.
+
+Since we are comparing a quantitative variable and categorical variable, side-by-side boxplots are the most appropriate visualization.
+
+```{r}
+ggplot(testScores, aes(teaching_method, pretest)) +
+  geom_boxplot(fill = "forestgreen") +
+  xlab("Teaching Method") +
+  ylab("Pre-Test Score") +
+  ggtitle("Teaching Method vs. Pre-Test Score")
+```
+
+Looking at the median pretest scores, it looks like the pretest scores for students studying in a classroom with an experimental teaching method is just a little bit higher. Looking at the IQR, the spread generally the experimental teaching style seems to be a little bit larger. The overall range for pretest scores look to be almost the same for both teaching methods.
+
+#### Pretest Score vs. Posttest Score
+
+Since we are comparing two quantitative variables, I will hop right into displaying a scatterplot.
+
+```{r}
+ggplot(testScores, aes(pretest, posttest)) +
+  geom_point(color = "forestgreen") +
+  xlab("Pre-Test Score") +
+  ylab("Post-Test Score") +
+  ggtitle("Pre-Test Score vs. Post-Test Score")
+```
+
+Looking at the scatterplot between pre-test and post-test scores, the relationship quite honestly looks linear as it seems to be a solidly linear increasing group without much concern for increasing variance.
+
+### Comparison of all Variables of Interest
+
+Since we have two quantitative variables and one categorical variable of interest, I can just make a scatterplot of the quantitative variables and have the categorical variable represent a color on the scatterplot.
+
+```{r warning=FALSE}
+ggplot(testScores, aes(pretest, posttest, color = teaching_method)) +
+  geom_point() +
+  xlab("Pre-Test Score") +
+  ylab("Post-Test Score") +
+  ggtitle("Pre-Test Score vs. Post-Test Score") +
+  labs(color = "Teaching Method") +
+  geom_smooth(method = "lm")
+```
+
+This graph also really supports a strong linear relationship where the methodologies are clearly clustered and separable by teaching method. Looking at the least squares regression line I added to the graph the slopes are seemingly the same indicating that there is no interaction between teaching method and pretest scores.

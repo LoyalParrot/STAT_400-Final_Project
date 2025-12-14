@@ -1,0 +1,131 @@
+---
+title: "STAT_400-MLM_Milestone1"
+author: "Ishan Agrahar, Jake Sturges, Noah Tobias, Prajwal Bhandari"
+date: "2025-12-09"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Front Matter
+
+```{r}
+# Libraries
+library(tidyverse)
+library(pROC)
+library(car)
+library(caret)
+library(janitor)
+library(skimr)
+library(GGally)
+library(glmnet)
+library(lme4)
+
+# GLM Dataset Read-In
+## Raw Data Source Link: https://github.com/NocturneBear/NBA-Data-2010-2024/blob/main/regular_season_totals_2010_2024.csv
+NBAGameData <- read.csv("GLM/data/RawData/regular_season_totals_2010_2024.csv")
+## I manually made a csv from this site using Google Sheets: https://basketball.realgm.com/nba/playoffs/history/2010
+NBAPlayoffTeamsPerYear <- read.csv("GLM/data/RawData/NBA_Playoff_Data.csv")
+
+# MLM Dataset Read-In
+testScores <- read.csv("MLM/data/test_scores.csv")
+```
+
+
+# GLM Chapter
+
+Our goal of this logistic regression is to predict whether a team will make the playoffs and as such our response variable will be a binary response which takes values of (1) for a team that made the playoffs and (0) for a team that did not make the playoffs.
+
+A single observation in this dataset will be a NBA team during a given season.
+
+## Data Wrangling
+
+For the data wrangling portion of this project, our original data set had each observation as a single NBA game between 2010 and 2024, so the first thing we had to do was change an observational unit to be a team during an individual NBA season. We then combined this data set with a data set that coded for our response variable; whether a team made the NBA playoffs or not. There were no missing values in this data set and the code to make our cleaned dataset is shown below.
+
+```{r}
+NBATeamData <- NBAGameData %>%
+  # grouped by season and team so each observation is a team in a given season
+  group_by(SEASON_YEAR,TEAM_NAME) %>%
+# creating relevant variables for dataset
+  summarise(FGA = mean(FGA),
+            FGM = mean(FGM),
+            FG_PCT = mean(FG_PCT),
+            FG3M = mean(FG3M),
+            FG3A = mean(FG3A),
+            FG3_PCT = mean(FG3_PCT),
+            FTM = mean(FTM),
+            FTA = mean(FTA),
+            FTPCT = mean(FT_PCT),
+            OREB = mean(OREB),
+            DREB = mean(DREB),
+            REB = mean(REB),
+            AST = mean(AST),
+            TOV = mean(TOV),
+            STL = mean(STL),
+            BLK = mean(BLK),
+            BLKA = mean(BLKA),
+            PF = mean(PF),
+            PFD = mean(PFD),
+            PTS = mean(PTS),
+            PLUS_MINUS = mean(PLUS_MINUS),
+            WINPCT = mean(ifelse(WL == "W",1,0)),
+            .groups = "drop") %>%
+  mutate(CONFERENCE = ifelse(TEAM_NAME %in% c("Denver Nuggets","Minnesota Timberwolves","Oklahoma City Thunder","Utah Jazz","Portland Trail Blazers","Golden State Warriors","LA Clippers", "Los Angeles Clippers","Los Angeles Lakers", "Phoenix Suns","Sacramento Kings", "Dallas Mavericks","Houston Rockets","Memphis Grizzlies", "New Orleans Pelicans","San Antonio Spurs","New Orleans Hornets"), "Western", "Eastern"))
+
+# Dataset does not include whether team has made playoffs so will need to join
+## See NBAPlayoffTeamsPerYear
+
+## I just copied and pasted playoffs occurrences, which is a comma separated string, into the Years Column so I just need to go through each team and indicate 1 if the Year is in the string and 0 otherwise.
+NBAPlayoffTeamsPerYear <-
+  NBAPlayoffTeamsPerYear %>%
+  mutate(
+    `2010-11` = ifelse(grepl("2011", Years), 1, 0),
+    `2011-12` = ifelse(grepl("2012", Years), 1, 0),
+    `2012-13` = ifelse(grepl("2013", Years), 1, 0),
+    `2013-14` = ifelse(grepl("2014", Years), 1, 0),
+    `2014-15` = ifelse(grepl("2015", Years), 1, 0),
+    `2015-16` = ifelse(grepl("2016", Years), 1, 0),
+    `2016-17` = ifelse(grepl("2017", Years), 1, 0),
+    `2017-18` = ifelse(grepl("2018", Years), 1, 0),
+    `2018-19` = ifelse(grepl("2019", Years), 1, 0),
+    `2019-20` = ifelse(grepl("2020", Years), 1, 0),
+    `2020-21` = ifelse(grepl("2021", Years), 1, 0),
+    `2021-22` = ifelse(grepl("2022", Years), 1, 0),
+    `2022-23` = ifelse(grepl("2023", Years), 1, 0),
+    `2023-24` = ifelse(grepl("2024", Years), 1, 0)
+  ) %>%
+  pivot_longer(cols = starts_with("20"),
+               names_to = "SEASON_YEAR", # For consistency with original dataset
+               values_to = "PlayoffAppearanceIndicator") %>%
+  rename(TEAM_NAME = Team.Name) %>%
+  .[, -2] # Removing the Years Column since don't need it anymore and need to join
+
+## Comparing team names, Uncomment below if you wanna see this
+# setdiff(unique(NBAPlayoffTeamsPerYear$TEAM_NAME), unique(NBATeamData$TEAM_NAME))
+# setdiff(unique(NBATeamData$TEAM_NAME), unique(NBAPlayoffTeamsPerYear$TEAM_NAME))
+# Differences are [1] "Philadelphia Sixers", & "Charlotte Bobcats"   "New Jersey Nets"     "New Orleans Hornets" "Philadelphia 76ers"  "LA Clippers"
+
+## Manually Fix Inconsistencies
+NBAPlayoffTeamsPerYear$TEAM_NAME[NBAPlayoffTeamsPerYear$TEAM_NAME == "Philadelphia Sixers"] <- "Philadelphia 76ers"
+NBATeamData$TEAM_NAME[NBATeamData$TEAM_NAME == "Charlotte Bobcats"] <- "Charlotte Hornets"
+NBATeamData$TEAM_NAME[NBATeamData$TEAM_NAME == "New Jersey Nets"] <- "Brooklyn Nets"
+NBATeamData$TEAM_NAME[NBATeamData$TEAM_NAME == "New Orleans Hornets"] <- "New Orleans Pelicans"
+NBATeamData$TEAM_NAME[NBATeamData$TEAM_NAME == "LA Clippers"] <- "Los Angeles Clippers"
+
+## Validate, Uncomment below if you wanna see this
+# setdiff(unique(NBAPlayoffTeamsPerYear$TEAM_NAME), unique(NBATeamData$TEAM_NAME))
+# setdiff(unique(NBATeamData$TEAM_NAME), unique(NBAPlayoffTeamsPerYear$TEAM_NAME))
+
+## Perform Join of NBAPlayoffTeamsPerYear and NBATeamData
+NBATeamData <- 
+  left_join(NBATeamData,
+            NBAPlayoffTeamsPerYear,
+            by=c("TEAM_NAME", "SEASON_YEAR"))
+
+## Perform save, Uncomment below if you want it
+#write_csv(NBATeamData, "CleanedData/NBATeamData.csv")
+```
+
+# MLM Chapter

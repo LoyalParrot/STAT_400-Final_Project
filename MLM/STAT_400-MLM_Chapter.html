@@ -379,8 +379,7 @@ library(tidyverse)</code></pre>
 ## The following object is masked from &#39;package:dplyr&#39;:
 ## 
 ##     group_rows</code></pre>
-<pre class="r"><code>library(GGally)
-library(lme4)</code></pre>
+<pre class="r"><code>library(lme4)</code></pre>
 <pre><code>## Loading required package: Matrix
 ## 
 ## Attaching package: &#39;Matrix&#39;
@@ -388,6 +387,18 @@ library(lme4)</code></pre>
 ## The following objects are masked from &#39;package:tidyr&#39;:
 ## 
 ##     expand, pack, unpack</code></pre>
+<pre class="r"><code>library(car)</code></pre>
+<pre><code>## Loading required package: carData
+## 
+## Attaching package: &#39;car&#39;
+## 
+## The following object is masked from &#39;package:dplyr&#39;:
+## 
+##     recode
+## 
+## The following object is masked from &#39;package:purrr&#39;:
+## 
+##     some</code></pre>
 <pre class="r"><code># Dataset Read-In
 testScores &lt;- read.csv(&quot;data/test_scores.csv&quot;)</code></pre>
 </div>
@@ -917,6 +928,16 @@ the methodologies are clearly clustered and separable by teaching
 method. Looking at the least squares regression line I added to the
 graph the slopes are seemingly the same indicating that there is no
 interaction between teaching method and pretest scores.</p>
+<div id="check-for-multi-collinearity" class="section level4">
+<h4>Check for Multi-Collinearity</h4>
+<p>Given the research question and random effects I can make a model to
+check for VIFs below:</p>
+<pre class="r"><code>vif(lmer(posttest ~ pretest + teaching_method + (1 | classroom), testScores))</code></pre>
+<pre><code>##         pretest teaching_method 
+##        1.004229        1.004229</code></pre>
+<p>The numbers are quite close to 1 so there is no concern with
+Multi-Collinearity.</p>
+</div>
 </div>
 </div>
 

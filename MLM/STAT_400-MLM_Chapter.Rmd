@@ -15,8 +15,8 @@ knitr::opts_chunk$set(echo = TRUE)
 # Libraries
 library(tidyverse)
 library(kableExtra)
-library(GGally)
 library(lme4)
+library(car)
 
 # Dataset Read-In
 testScores <- read.csv("data/test_scores.csv")
@@ -351,3 +351,13 @@ ggplot(testScores, aes(pretest, posttest, color = teaching_method)) +
 ```
 
 This graph also really supports a strong linear relationship where the methodologies are clearly clustered and separable by teaching method. Looking at the least squares regression line I added to the graph the slopes are seemingly the same indicating that there is no interaction between teaching method and pretest scores.
+
+#### Check for Multi-Collinearity
+
+Given the research question and random effects I can make a model to check for VIFs below:
+
+```{r}
+vif(lmer(posttest ~ pretest + teaching_method + (1 | classroom), testScores))
+```
+
+The numbers are quite close to 1 so there is no concern with Multi-Collinearity.

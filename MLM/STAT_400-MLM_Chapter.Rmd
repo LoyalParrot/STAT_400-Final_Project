@@ -365,7 +365,6 @@ The numbers are quite close to 1 so there is no concern with Multi-Collinearity.
 
 ## Model Creation
 
-
 The first step for model creation is to create the random intercepts model, which means each model has a slope of 0.
 
 ```{r}
@@ -436,8 +435,24 @@ AIC(PretestTeachingMethodModel)
 
 When comparing all 3 models, the best model by AIC is the random intercept model including pretest and teaching method with an AIC of 10961.56. Given the next best AIC is 11615.18, it is a clear choice to include both teaching method and pretest as predictors in this multi-level model.
 
+## Answer to Research Question
 
+First I would like to restate our research question: What is the association between a class's teaching method (standard vs. experimental) and their student's post test scores, controlling for the student's pretest.
 
+The multi-level model that we built in the last section for this question is the random intercept model including pretest and teaching method with the summary provided below.
 
+```{r}
+summary(PretestTeachingMethodModel)
+```
 
+From our generated model we have a coefficient of -7.56591 for teaching_methodStandard.
 
+The interpretation of this coefficient is that, on average, students who are taught in a class whose teaching method is standard are going to have post test scores that are 7.56591 smaller than students who are taught in a class whose teaching method is experimental, assuming their pretest score remains constant.
+
+To followup on this answer the research question I will also perform a 95% confidence interval.
+
+```{r}
+confint(PretestTeachingMethodModel)
+```
+
+We are 95% confident that as a student's teaching method goes from experimental to standard their post test score is will decrease by a number between -9.831 and -5.338, assuming their pretest score remains constant.

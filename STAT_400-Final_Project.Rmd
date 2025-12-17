@@ -189,7 +189,7 @@ Here we include the variables in our cleaned dataset and what they represent.
 
 **CONFERENCE** - a variable describing which conference a team is in taking values "Western" or "Eastern" - Categorical, 2 Levels
 
-The response variable is **PlayoffAppearanceIndicator** which is a binary indicator variable with a value of 1 for if a team made the playoffs in a the specified season and 0 otherwise.
+The response variable is **PlayoffAppearanceIndicator** which is a binary indicator variable with a value of 1 for if a team made the playoffs in the specified season and 0 otherwise.
 
 ## Exploratory Data Analysis
 
@@ -215,7 +215,7 @@ skimr::skim(NBATeamData)
 head(NBATeamData)
 ```
 
-Based on the above there seems to be no missing variables for any of the dataset. Based on the above there are 14 seasons worth of data (2010-2024). For our research the most important variable that we are trying to predict is playoff appearance, as this indicates whether a team made/will make the playoffs based on our model. While as of right now its not clear which variables will be most important, some that will likely have a high impact are `PTS`, `PLUS_MINUS`, `FG_PCT`, and `FG3_PCT`. One variable purposefully excluded from that is `WINPCT` as using that is kind of pointless in our prediction since `WINCPT` directly indicates playoff teams as the 8 highest `WINPCT` teams in each conference automatically make the playoffs.
+Based on the above there seems to be no missing variables for any of the dataset. Based on the above there are 14 seasons worth of data (2010-2024). For our research the most important variable that we are trying to predict is playoff appearance, as this indicates whether a team made/will make the playoffs based on our model. While as of right now it's not clear which variables will be most important, some that will likely have a high impact are `PTS`, `PLUS_MINUS`, `FG_PCT`, and `FG3_PCT`. One variable purposefully excluded from that is `WINPCT` as using that is kind of pointless in our prediction since `WINCPT` directly indicates playoff teams as the 8 highest `WINPCT` teams in each conference automatically make the playoffs.
 
 ## Univariate EDA 
 
@@ -344,7 +344,7 @@ ggplot(NBATeamData, aes(x = FG3_PCT, y = WINPCT, color = PlayoffAppearance)) +
   theme_minimal()
 ```
 
-A very interesting graphic that probably highlights more recent trends in NBA scoring / offensive dyanmic is how field goal pct and 3-point field goal percentage impact the win % of a team. It is very clear that as a team has a better three point field goal percentage their win % seems to see a boost as well, even significantly more than just if the same occurs in overall field goal percentage. Win % and field goal percentage seem almost linear, while 3 point field goal percentage and win percentage seem linear up until the upper echelon of three point shooting teams is reached where it seems to increase with win pct % exponentially.
+A very interesting graphic that probably highlights more recent trends in NBA scoring / offensive dynamic is how field goal pct and 3-point field goal percentage impact the win % of a team. It is very clear that as a team has a better three point field goal percentage their win % seems to see a boost as well, even significantly more than just if the same occurs in overall field goal percentage. Win % and field goal percentage seem almost linear, while 3 point field goal percentage and win percentage seem linear up until the upper echelon of three point shooting teams is reached where it seems to increase with win pct % exponentially.
 
 
 ### Blocks and Steals for Playoff vs. Non-Playoff Teams 
@@ -869,7 +869,7 @@ ggplot(testScores, aes(pretest, posttest, color = teaching_method)) +
   geom_smooth(method = "lm")
 ```
 
-This graph also really supports a strong linear relationship where the methodologies are clearly clustered and separable by teaching method. Looking at the least squares regression line I added to the graph the slopes are seemingly the same indicating that there is no interaction between teaching method and pretest scores.
+This graph also really supports a strong positive linear relationship where the methodologies are clearly clustered and separable by teaching method. Looking at the least squares regression line I added to the graph the slopes are seemingly the same indicating that there is no interaction between teaching method and pretest scores.
 
 #### Check for Multi-Collinearity
 
@@ -974,4 +974,4 @@ To followup on this answer the research question I will also perform a 95% confi
 confint(PretestTeachingMethodModel)
 ```
 
-We are 95% confident that as a student's classes teaching method goes from experimental to standard their post test score is will decrease by a number between -9.831 and -5.338, assuming their pretest score remains constant.
+We are 95% confident that as a student's class teaching method goes from experimental to standard their post test score is will decrease, on average, by a number between -9.831 and -5.338, assuming their pretest score remains constant.

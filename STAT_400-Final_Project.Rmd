@@ -966,7 +966,7 @@ summary(PretestTeachingMethodModel)
 
 From our generated model we have a coefficient of -7.56591 for teaching_methodStandard.
 
-The interpretation of this coefficient is that, on average, students who are taught in a class whose teaching method is standard are going to have post test scores that are 7.56591 smaller than students who are taught in a class whose teaching method is experimental, assuming their pretest score remains constant.
+The interpretation of this coefficient is that, on average, students who are taught in a class whose teaching method is standard are going to have post test scores that are 7.56591 smaller than students who are taught in a class whose teaching method is experimental, assuming their pretest score remains constant and the classroom grouping is the same.
 
 To followup on this answer the research question I will also perform a 95% confidence interval.
 
@@ -974,4 +974,4 @@ To followup on this answer the research question I will also perform a 95% confi
 confint(PretestTeachingMethodModel)
 ```
 
-We are 95% confident that as a student's class teaching method goes from experimental to standard their post test score is will decrease, on average, by a number between -9.831 and -5.338, assuming their pretest score remains constant.
+We are 95% confident that as a student's class teaching method goes from experimental to standard their post test score is will decrease, on average, by a number between -9.831 and -5.338, assuming their pretest score remains constant and the classroom grouping is the same.

@@ -455,4 +455,4 @@ To followup on this answer the research question I will also perform a 95% confi
 confint(PretestTeachingMethodModel)
 ```
 
-We are 95% confident that as a student's teaching method goes from experimental to standard their post test score is will decrease by a number between -9.831 and -5.338, assuming their pretest score remains constant.
+We are 95% confident that as a student's classes teaching method goes from experimental to standard their post test score is will decrease by a number between -9.831 and -5.338, assuming their pretest score remains constant.

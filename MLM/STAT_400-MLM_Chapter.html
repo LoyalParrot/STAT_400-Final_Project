@@ -364,8 +364,8 @@ Bhandari</h4>
 library(tidyverse)</code></pre>
 <pre><code>## ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
 ## ✔ dplyr     1.1.4     ✔ readr     2.1.5
-## ✔ forcats   1.0.1     ✔ stringr   1.5.2
-## ✔ ggplot2   4.0.0     ✔ tibble    3.3.0
+## ✔ forcats   1.0.0     ✔ stringr   1.5.1
+## ✔ ggplot2   4.0.1     ✔ tibble    3.3.0
 ## ✔ lubridate 1.9.4     ✔ tidyr     1.3.1
 ## ✔ purrr     1.1.0     
 ## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
@@ -939,6 +939,228 @@ check for VIFs below:</p>
 Multi-Collinearity.</p>
 </div>
 </div>
+</div>
+<div id="model-creation" class="section level2">
+<h2>Model Creation</h2>
+<p>The first step for model creation is to create the random intercepts
+model, which means each model has a slope of 0.</p>
+<pre class="r"><code>RandomInterceptsModel &lt;- lmer(posttest ~ 1 + (1 | classroom),
+                              data = testScores,
+                              REML = FALSE)
+
+summary(RandomInterceptsModel)</code></pre>
+<pre><code>## Linear mixed model fit by maximum likelihood  [&#39;lmerMod&#39;]
+## Formula: posttest ~ 1 + (1 | classroom)
+##    Data: testScores
+## 
+##       AIC       BIC    logLik -2*log(L)  df.resid 
+##   11626.3   11643.2   -5810.1   11620.3      2130 
+## 
+## Scaled residuals: 
+##     Min      1Q  Median      3Q     Max 
+## -3.1893 -0.6141  0.0144  0.6385  3.6494 
+## 
+## Random effects:
+##  Groups    Name        Variance Std.Dev.
+##  classroom (Intercept) 181.46   13.471  
+##  Residual               10.38    3.222  
+## Number of obs: 2133, groups:  classroom, 97
+## 
+## Fixed effects:
+##             Estimate Std. Error t value
+## (Intercept)    68.41       1.37   49.95</code></pre>
+<p>Model Representation: Level 1: <span class="math display">\[Yij = Ai
++ bi*Xij,standard + Eij\]</span></p>
+<p>Level 2: <span class="math display">\[ Ai = a0 + ui\]</span></p>
+<p><span class="math display">\[ bi = 0 \]</span></p>
+<p>Interpretation: For this model, the fixed effect intercept(a0)
+represents the mean posttest score across all classrooms, while each
+classroom(random effect) has its own intercept represented by an error
+term(ui). Within each classroom there is a error term(Eij) that
+represents differences in posttest scores within each classroom. For
+this model, the average classroom has a posttest score of 68.41 after
+accounting for between classroom variability.</p>
+<p>We also take a look at the intraclass correlation <span class="math inline">\(\sigma\)</span> by dividing the variance between
+groups by the total variance. In this model <span class="math inline">\(\sigma = 181.46 / (181.46+10.38) = 0.945\)</span>.
+A correlation this high tells us that the observations are meaningfully
+clustered and that we can proceed safely with the following multilevel
+models.</p>
+<p>Next we want to add one of our variables of interest teaching_method
+to create a random slopes and intercepts model</p>
+<pre class="r"><code>RandomSlopeInterceptModel &lt;- 
+  lmer(posttest ~ teaching_method + (1 + teaching_method | classroom),
+                              data = testScores,
+                              REML = FALSE)</code></pre>
+<pre><code>## Warning in checkConv(attr(opt, &quot;derivs&quot;), opt$par, ctrl = control$checkConv, :
+## unable to evaluate scaled gradient</code></pre>
+<pre><code>## Warning in checkConv(attr(opt, &quot;derivs&quot;), opt$par, ctrl = control$checkConv, :
+## Model failed to converge: degenerate Hessian with 1 negative eigenvalues</code></pre>
+<pre class="r"><code>summary(RandomSlopeInterceptModel)</code></pre>
+<pre><code>## Linear mixed model fit by maximum likelihood  [&#39;lmerMod&#39;]
+## Formula: posttest ~ teaching_method + (1 + teaching_method | classroom)
+##    Data: testScores
+## 
+##       AIC       BIC    logLik -2*log(L)  df.resid 
+##   11619.2   11653.2   -5803.6   11607.2      2127 
+## 
+## Scaled residuals: 
+##     Min      1Q  Median      3Q     Max 
+## -3.1968 -0.6121  0.0179  0.6390  3.6505 
+## 
+## Random effects:
+##  Groups    Name                    Variance Std.Dev. Corr 
+##  classroom (Intercept)             158.73   12.599        
+##            teaching_methodStandard 301.83   17.373   -0.69
+##  Residual                           10.38    3.222        
+## Number of obs: 2133, groups:  classroom, 97
+## 
+## Fixed effects:
+##                         Estimate Std. Error t value
+## (Intercept)               74.644      2.103  35.491
+## teaching_methodStandard   -9.913      2.651  -3.739
+## 
+## Correlation of Fixed Effects:
+##             (Intr)
+## tchng_mthdS -0.793
+## optimizer (nloptwrap) convergence code: 0 (OK)
+## unable to evaluate scaled gradient
+## Model failed to converge: degenerate  Hessian with 1 negative eigenvalues</code></pre>
+<p>Model Representation: Level 1: <span class="math display">\[Yij = Ai
++ bi*Xij,standard + Eij\]</span></p>
+<p>Level 2: <span class="math display">\[ Ai = a0 + ui\]</span> <span class="math display">\[ bi = B0 + vi \]</span></p>
+<p>Interpretation: For this model, the fixed effect is the teaching
+method with a intercept of 74.644 and a slope of -9.913. This means that
+controlling for the effects of each individual classroom, the average
+classroom using an experimental teaching method has an expected posttest
+score of 74.644, while the average classroom using the standard teaching
+method has an expected posttest score of 64.73. Both fixed effect
+estimates have t-values with absolute values above 2, and as such should
+be considered significant in our model. This model has error terms
+associated with the intercept and slope, meaning that each classroom
+receives its own model with its own intercept and slope.</p>
+<p>Next we will add our last fixed effect, pretest as a level 1
+variable</p>
+<pre class="r"><code>RandomSlopeInterceptModelPretest &lt;- 
+  lmer(posttest ~ pretest + teaching_method + (1 + teaching_method | classroom),
+                              data = testScores,
+                              REML = FALSE)</code></pre>
+<pre><code>## Warning in checkConv(attr(opt, &quot;derivs&quot;), opt$par, ctrl = control$checkConv, : Model is nearly unidentifiable: large eigenvalue ratio
+##  - Rescale variables?</code></pre>
+<pre class="r"><code>summary(RandomSlopeInterceptModelPretest)</code></pre>
+<pre><code>## Linear mixed model fit by maximum likelihood  [&#39;lmerMod&#39;]
+## Formula: posttest ~ pretest + teaching_method + (1 + teaching_method |  
+##     classroom)
+##    Data: testScores
+## 
+##       AIC       BIC    logLik -2*log(L)  df.resid 
+##   10965.6   11005.2   -5475.8   10951.6      2126 
+## 
+## Scaled residuals: 
+##     Min      1Q  Median      3Q     Max 
+## -3.4679 -0.6387  0.0049  0.6428  3.7177 
+## 
+## Random effects:
+##  Groups    Name                    Variance Std.Dev. Corr 
+##  classroom (Intercept)             27.806   5.273         
+##            teaching_methodStandard  5.027   2.242    -0.18
+##  Residual                           8.164   2.857         
+## Number of obs: 2133, groups:  classroom, 97
+## 
+## Fixed effects:
+##                         Estimate Std. Error t value
+## (Intercept)             41.23486    1.38002  29.880
+## pretest                  0.56828    0.01802  31.543
+## teaching_methodStandard -7.56567    1.12384  -6.732
+## 
+## Correlation of Fixed Effects:
+##             (Intr) pretst
+## pretest     -0.767       
+## tchng_mthdS -0.556  0.066
+## optimizer (nloptwrap) convergence code: 0 (OK)
+## Model is nearly unidentifiable: large eigenvalue ratio
+##  - Rescale variables?</code></pre>
+<p>Model Representation: Level 1: <span class="math display">\[Yij = Ai
++ bi*Xij,standard + bj*Xpretest+ Eij\]</span></p>
+<p>Level 2: <span class="math display">\[ Ai = a0 + ui\]</span> <span class="math display">\[ bi = B0 + vi \]</span></p>
+<p>Interpretation: This model is the same as the last model, with the
+added level 1 variable pretest. This means there is still an error term
+associated with teaching method’s slope and intercept between classes,
+but pretest will not add any extra error terms since it is a level 1
+variable and is not a classroom level variable. For this model, there is
+an intercept term of 41.23486, a slope term for pretest of 0.56828, and
+a slope term for standard teaching method of -7.56567. All 3 terms have
+t-values with an absolute value above 2 and should be considered
+significant in the model. An intercept of 41.23486 means that with a
+pretest score of 0 and a teaching method of experimental, we should
+expect a posttest score of 41.23486. A pretest slope of 0.56828 means
+that with teaching method held constant, an increase in 1 for pretest
+score has an expected 0.56828 increase in posttest score(the better a
+student does on the pretest, the better they will do on the posttest, on
+average). A teaching method slope of -7.56567 means that with pretest
+held constant, a student in a standard classroom is expected to score
+7.56567 points worse on their posttest.</p>
+<pre class="r"><code>RandomInterceptModelPretest &lt;- lmer(posttest ~ pretest + teaching_method + (1 | classroom),
+                              data = testScores,
+                              REML = FALSE)
+
+summary(RandomInterceptModelPretest)</code></pre>
+<pre><code>## Linear mixed model fit by maximum likelihood  [&#39;lmerMod&#39;]
+## Formula: posttest ~ pretest + teaching_method + (1 | classroom)
+##    Data: testScores
+## 
+##       AIC       BIC    logLik -2*log(L)  df.resid 
+##   10961.6   10989.9   -5475.8   10951.6      2128 
+## 
+## Scaled residuals: 
+##     Min      1Q  Median      3Q     Max 
+## -3.4683 -0.6393  0.0048  0.6425  3.7175 
+## 
+## Random effects:
+##  Groups    Name        Variance Std.Dev.
+##  classroom (Intercept) 28.264   5.316   
+##  Residual               8.164   2.857   
+## Number of obs: 2133, groups:  classroom, 97
+## 
+## Fixed effects:
+##                         Estimate Std. Error t value
+## (Intercept)             41.23589    1.38465   29.78
+## pretest                  0.56827    0.01802   31.54
+## teaching_methodStandard -7.56591    1.12754   -6.71
+## 
+## Correlation of Fixed Effects:
+##             (Intr) pretst
+## pretest     -0.765       
+## tchng_mthdS -0.560  0.066</code></pre>
+<p>Model Representation: Level 1: <span class="math display">\[Yij = Ai
++ bi*Xij,standard + bj*Xpretest+ Eij\]</span></p>
+<p>Level 2: <span class="math display">\[ Ai = a0 + ui\]</span> <span class="math display">\[ bi = B0 \]</span></p>
+<p>Interpretation: This model removes the slope error term from the
+previous model, which means that each classroom model is given the same
+slope associated with the teaching method. This model has an intercept
+estimate of 41.23589, a pretest slope estimate of 0.56827, and a
+standard teaching method slope estimate of -7.56591. These estimates are
+nearly identical to our previous model, and the interpretations remain
+the same.</p>
+<p>Finally we need to compare all our possible models to see which most
+accurately predicts posttest score using pretest, which we will compare
+using AIC since we used maximum likelihood estimation to derive our
+models.</p>
+<pre class="r"><code>AIC(RandomInterceptsModel)</code></pre>
+<pre><code>## [1] 11626.25</code></pre>
+<pre class="r"><code>AIC(RandomSlopeInterceptModel)</code></pre>
+<pre><code>## [1] 11619.18</code></pre>
+<pre class="r"><code>AIC(RandomSlopeInterceptModelPretest)</code></pre>
+<pre><code>## [1] 10965.55</code></pre>
+<pre class="r"><code>AIC(RandomInterceptModelPretest)</code></pre>
+<pre><code>## [1] 10961.56</code></pre>
+<p>When comparing all 4 models, the 2 best models by AIC are the random
+slope random intercept model including pretest and teaching method with
+an AIC of 10965.55, and the simplified random intercept model including
+pretest and teaching method with an AIC of 10961.56. Since the AIC
+values are so close between these 2 models, there is no major preference
+of final model between these 2, but since the random intercepts model
+with pretest and teaching method has a slightly lower AIC as well as
+being more simplistic, that is our final model.</p>
 </div>
 
 

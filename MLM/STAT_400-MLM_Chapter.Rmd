@@ -361,6 +361,8 @@ vif(lmer(posttest ~ pretest + teaching_method + (1 | classroom), testScores))
 ```
 
 
+The numbers are quite close to 1 so there is no concern with Multi-Collinearity.
+
 ## Model Creation
 
 
@@ -384,7 +386,7 @@ $$ bi = 0 $$
          
 Interpretation: For this model, the fixed effect intercept(a0) represents the mean posttest score across all classrooms, while each classroom(random effect) has its own intercept represented by an error term(ui). Within each classroom there is a error term(Eij) that represents differences in posttest scores within each classroom. For this model, the average classroom has a posttest score of 68.41 after accounting for between classroom variability.
 
-
+We also take a look at the intraclass correlation $\sigma$ by dividing the variance between groups by the total variance. In this model $\sigma = 181.46 / (181.46+10.38) = 0.945$. A correlation this high tells us that the observations are meaningfully clustered and that we can proceed safely with the following multilevel models. 
 
 Next we want to add one of our variables of interest teaching_method to create a random slopes and intercepts model
 
@@ -461,5 +463,3 @@ When comparing all 4 models, the 2 best models by AIC are the random slope rando
 
 
 
-
-The numbers are quite close to 1 so there is no concern with Multi-Collinearity.

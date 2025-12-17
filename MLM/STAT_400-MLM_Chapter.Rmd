@@ -360,4 +360,106 @@ Given the research question and random effects I can make a model to check for V
 vif(lmer(posttest ~ pretest + teaching_method + (1 | classroom), testScores))
 ```
 
+
+## Model Creation
+
+
+The first step for model creation is to create the random intercepts model, which means each model has a slope of 0.
+
+```{r}
+RandomInterceptsModel <- lmer(posttest ~ 1 + (1 | classroom),
+                              data = testScores,
+                              REML = FALSE)
+
+summary(RandomInterceptsModel)
+
+```
+
+Model Representation:
+Level 1: $$Yij = Ai + bi*Xij,standard + Eij$$
+
+Level 2: $$ Ai = a0 + ui$$
+
+$$ bi = 0 $$
+         
+Interpretation: For this model, the fixed effect intercept(a0) represents the mean posttest score across all classrooms, while each classroom(random effect) has its own intercept represented by an error term(ui). Within each classroom there is a error term(Eij) that represents differences in posttest scores within each classroom. For this model, the average classroom has a posttest score of 68.41 after accounting for between classroom variability.
+
+
+
+Next we want to add one of our variables of interest teaching_method to create a random slopes and intercepts model
+
+```{r}
+RandomSlopeInterceptModel <- 
+  lmer(posttest ~ teaching_method + (1 + teaching_method | classroom),
+                              data = testScores,
+                              REML = FALSE)
+
+summary(RandomSlopeInterceptModel)
+```
+Model Representation:
+Level 1: $$Yij = Ai + bi*Xij,standard + Eij$$
+
+Level 2: $$ Ai = a0 + ui$$
+$$ bi = B0 + vi $$
+         
+Interpretation: For this model, the fixed effect is the teaching method with a intercept of 74.644 and a slope of -9.913. This means that controlling for the effects of each individual classroom, the average classroom using an experimental teaching method has an expected posttest score of 74.644, while the average classroom using the standard teaching method has an expected posttest score of 64.73. Both fixed effect estimates have t-values with absolute values above 2, and as such should be considered significant in our model. This model has error terms associated with the intercept and slope, meaning that each classroom receives its own model with its own intercept and slope.
+
+
+Next we will add our last fixed effect, pretest as a level 1 variable
+         
+```{r}
+RandomSlopeInterceptModelPretest <- 
+  lmer(posttest ~ pretest + teaching_method + (1 + teaching_method | classroom),
+                              data = testScores,
+                              REML = FALSE)
+
+summary(RandomSlopeInterceptModelPretest)
+```
+
+Model Representation:
+Level 1: $$Yij = Ai + bi*Xij,standard + bj*Xpretest+ Eij$$
+
+Level 2: $$ Ai = a0 + ui$$
+$$ bi = B0 + vi $$
+         
+Interpretation: This model is the same as the last model, with the added level 1 variable pretest. This means there is still an error term associated with teaching method's slope and intercept between classes, but pretest will not add any extra error terms since it is a level 1 variable and is not a classroom level variable. For this model, there is an intercept term of 41.23486, a slope term for pretest of 0.56828, and a slope term for standard teaching method of -7.56567. All 3 terms have t-values with an absolute value above 2 and should be considered significant in the model. An intercept of 41.23486 means that with a pretest score of 0 and a teaching method of experimental, we should expect a posttest score of 41.23486. A pretest slope of 0.56828 means that with teaching method held constant, an increase in 1 for pretest score has an expected 0.56828 increase in posttest score(the better a student does on the pretest, the better they will do on the posttest, on average). A teaching method slope of -7.56567 means that with pretest held constant, a student in a standard classroom is expected to score 7.56567 points worse on their posttest.
+
+
+
+
+```{r}
+RandomInterceptModelPretest <- lmer(posttest ~ pretest + teaching_method + (1 | classroom),
+                              data = testScores,
+                              REML = FALSE)
+
+summary(RandomInterceptModelPretest)
+```
+Model Representation:
+Level 1: $$Yij = Ai + bi*Xij,standard + bj*Xpretest+ Eij$$
+
+Level 2: $$ Ai = a0 + ui$$
+$$ bi = B0 $$
+         
+Interpretation: This model removes the slope error term from the previous model, which means that each classroom model is given the same slope associated with the teaching method. This model has an intercept estimate of 41.23589, a pretest slope estimate of 0.56827, and a standard teaching method slope estimate of -7.56591. These estimates are nearly identical to our previous model, and the interpretations remain the same.
+
+
+
+Finally we need to compare all our possible models to see which most accurately predicts posttest score using pretest, which we will compare using AIC since we used maximum likelihood estimation to derive our models.
+
+```{r}
+AIC(RandomInterceptsModel)
+AIC(RandomSlopeInterceptModel)
+AIC(RandomSlopeInterceptModelPretest)
+AIC(RandomInterceptModelPretest)
+```
+
+When comparing all 4 models, the 2 best models by AIC are the random slope random intercept model including pretest and teaching method with an AIC of 10965.55, and the simplified random intercept model including pretest and teaching method with an AIC of 10961.56. Since the AIC values are so close between these 2 models, there is no major preference of final model between these 2, but since the random intercepts model with pretest and teaching method has a slightly lower AIC as well as being more simplistic, that is our final model.
+
+
+
+
+
+
+
+
 The numbers are quite close to 1 so there is no concern with Multi-Collinearity.
